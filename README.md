@@ -84,7 +84,3 @@ Este aplicativo foi criado para melhorar a produtividade, mas os textos gerados 
 ## Contribuições
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests.
-
-## Licença
-
-Este projeto está sob a Yooga - 2024
