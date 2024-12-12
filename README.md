@@ -7,7 +7,7 @@ Este é um aplicativo CLI escrito em Go para gerar descrições detalhadas de ta
 Execute o seguinte comando no terminal para baixar e instalar o aplicativo automaticamente:
 
 ```bash
-sh -c "$(curl -fsSL https://github.com/andreabreu76/gojira/install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/andreabreu76/gojira/main/install.sh)"
 ```
 
 Este script detecta o sistema operacional e a arquitetura automaticamente, baixa o binário correto da última release do repositório GitHub e o instala em `/usr/local/bin`.
