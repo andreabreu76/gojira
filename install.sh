@@ -2,7 +2,7 @@
 
 set -e
 
-REPO_OWNER="yooga-tecnologia"
+REPO_OWNER="andreabreu76"
 REPO_NAME="gojira"
 BINARY_NAME="gojira"
 INSTALL_DIR="/usr/local/bin"
