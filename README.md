@@ -44,7 +44,7 @@ Certifique-se de que você possui as seguintes dependências instaladas no seu s
 
 1. Clone este repositório em sua máquina:
    ```bash
-   git clone git@github.com:yooga-tecnologia/gojira.git
+   git clone git@github.com:andreabreu76/gojira.git
    cd gojira
    ```
 
