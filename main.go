@@ -8,18 +8,22 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
+var version = "dev"
+
 func main() {
 	LoadEnv()
 
 	var rootCmd = &cobra.Command{
-		Use:   "gojira",
-		Short: "Uma ferramenta CLI de uso interno para criar descrições de tarefas para o Jira",
+		Use:     "gojira",
+		Short:   "Uma ferramenta CLI de uso interno para criar descrições de tarefas para o Jira",
+		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			title, _ := cmd.Flags().GetString("title")
 			taskType, _ := cmd.Flags().GetString("type")
@@ -68,26 +72,11 @@ func getModel(taskType string) string {
 	switch strings.ToUpper(taskType) {
 	case "EPICO", "TASK":
 		return `
-Objetivo: 
-XXXXXXXXXXXXXXXXXXXXXXXXXX.
-
+Objetivo:
 Como:
-
-XXXXXX.
-
 Critérios de Aceite:
-
-XXXXXX.
-
-Testes: 
-Dado que eu entre no postman
-Quando eu preencher os dados de autenticação do JSON de envio e submeter um usuário inexistente
-Então devo receber como retorno o erro 401.
-
+Testes:
 Informações para o time de Infra:
-[ ] - Execução de SQL no ambiente XXX
-[ ] - Fazer deploy no ambiente XXX
-
 Outras observações:
 `
 	case "BUG":
@@ -113,8 +102,6 @@ Versão do App/Dashboard/Emissor:
 Dispositivo:
 
 Informações para o time de Infra:
-[ ] - Execução de SQL no ambiente XXX
-[ ] - Fazer deploy no ambiente XXX
 
 Outras observações:
 `
@@ -148,12 +135,17 @@ func CallOpenAI(prompt string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Erro ao fechar o corpo da resposta")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("falha na chamada à API: %s", resp.Status)
