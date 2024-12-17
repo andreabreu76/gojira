@@ -8,14 +8,33 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 var version = "dev"
+
+type ReadmeData struct {
+	ProjectName       string
+	BriefDescription  string
+	Description       string
+	Technologies      string
+	ProjectType       string
+	UseCases          string
+	Prerequisites     string
+	RepositoryURL     string
+	InstallationSteps string
+	Usage             string
+	ProjectStructure  string
+	ContactInfo       string
+}
 
 func main() {
 	LoadEnv()
@@ -34,6 +53,40 @@ func main() {
 			}
 			if taskType != "EPICO" && taskType != "BUG" && taskType != "TASK" {
 				return errors.New("tipo de tarefa inválido. Use EPICO, BUG ou TASK")
+			}
+
+			if taskType == "README" {
+				if !isGitProject() {
+					return errors.New("o diretório atual não parece um projeto válido")
+				}
+
+				InitializeRedis()
+				fmt.Println("[INFO] Iniciando varredura do diretório...")
+
+				files := scanDirectory(".")
+				for _, file := range files {
+					fmt.Printf("[INFO] Analisando %s...\n", file)
+					result := analyzeFileWithOpenAI(file)
+					err := StoreResult("gojira:"+file, result)
+					if err != nil {
+						return errors.New("falha ao armazenar análise no Redis")
+					}
+				}
+
+				results := FetchAllResults("gojira:")
+				var combinedResults string
+				for file, result := range results {
+					combinedResults += fmt.Sprintf("### Arquivo: %s\n%s\n\n", file, result)
+				}
+
+				prompt := fmt.Sprintf("Baseado nos arquivos e descrições abaixo, crie um README.md:\n%s", combinedResults)
+				response, err := CallOpenAI(prompt)
+				if err != nil {
+					return errors.New("falha ao gerar README com OpenAI")
+				}
+
+				generateReadmeFile(response)
+				fmt.Println("[INFO] README_gojira.MD gerado com sucesso!")
 			}
 
 			model := getModel(taskType)
@@ -104,6 +157,51 @@ Dispositivo:
 Informações para o time de Infra:
 
 Outras observações:
+`
+	case "README":
+		return `
+# Nome do Projeto
+> Breve descrição do projeto, o que ele faz e seu propósito.
+---
+## Sumário
+- [Descrição](#descrição)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação](#instalação)
+- [Uso](#uso)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+---
+## Descrição
+Inclua aqui uma explicação clara do que o projeto faz, quem o utiliza e por que ele é importante.
+- Tecnologias principais: [Go](https://golang.org), [Node.js](https://nodejs.org/), [MongoDB](https://www.mongodb.com/), etc.
+- Tipo de projeto: Biblioteca, API, Serviço, Ferramenta CLI, etc.
+- Casos de uso: Explique como o projeto resolve problemas ou automatiza processos.
+---
+## Pré-requisitos
+Liste os requisitos mínimos para rodar ou usar o projeto.
+- Linguagem: Go (>= 1.18) ou Node.js (>= 16.x).
+- Dependências: Docker, Redis, PostgreSQL, etc.
+- Sistemas operacionais suportados: Windows, macOS, Linux.
+Exemplo:
+
+---
+## Instalação
+Inclua instruções claras para configurar o ambiente e instalar as dependências.
+### Clone o repositório
+
+### Instalar Dependências
+Para projetos em Node.js:
+Para projetos em Go:
+
+---
+## Uso
+Inclua exemplos ou instruções para rodar o projeto.
+### Para rodar localmente:
+## Estrutura do Projeto
+Forneça uma visão geral dos diretórios principais e seus propósitos:
+
+---
+## Contato de Apoio e Dúvidas
+Fulano da Silva [fulano.silva@yooga.com.br](mailto:fulano.silva@yooga.com.br).
 `
 	default:
 		return ""
@@ -183,4 +281,99 @@ func GetEnv(key string) string {
 	}
 
 	return value
+}
+
+func isGitProject() bool {
+	cmd := exec.Command("git", "config", "--list")
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	return strings.Contains(string(output), "remote.origin.url")
+}
+
+func scanDirectory(root string) []string {
+	var files []string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println("Erro ao listar arquivos:", err)
+		return nil
+	}
+	return files
+}
+
+func analyzeFileWithOpenAI(filePath string) string {
+	content, _ := os.ReadFile(filePath)
+	prompt := fmt.Sprintf("Analise o seguinte arquivo de código e descreva suas classes, funções e propósito:\n\n%s", content)
+
+	response, _ := CallOpenAI(prompt)
+	return response
+}
+
+func summarizeResults(results map[string]string) string {
+	var combined string
+	for file, result := range results {
+		combined += fmt.Sprintf("### Arquivo: %s\n%s\n\n", file, result)
+	}
+
+	prompt := fmt.Sprintf("Crie um resumo consolidado com base nas seguintes análises:\n\n%s", combined)
+	finalSummary, _ := CallOpenAI(prompt) // Utiliza OpenAI para gerar resumo
+	return finalSummary
+}
+
+func generateReadmeFile(summary string) {
+	data := ReadmeData{
+		ProjectName:      "NomeDoProjeto",
+		BriefDescription: "Projeto automatizado para análise e documentação.",
+		Description:      summary,
+		ProjectStructure: "Gerado automaticamente pelo GOJIRA.",
+		ContactInfo:      "Fulano da Silva - fulano.silva@yooga.com.br",
+	}
+
+	generateReadme(data) // Usa a função existente para gerar README com o template
+}
+
+func generateReadme(data ReadmeData) {
+	// Template do README
+	const readmeTemplate = `# {{.ProjectName}}
+> {{.BriefDescription}}
+
+## Descrição
+{{.Description}}
+
+## Estrutura do Projeto
+{{.ProjectStructure}}
+
+## Contato
+{{.ContactInfo}}
+`
+
+	tmpl, err := template.New("readme").Parse(readmeTemplate)
+	if err != nil {
+		log.Fatal("Erro ao processar template:", err)
+	}
+
+	file, err := os.Create("README_gojira.MD")
+	if err != nil {
+		log.Fatal("Erro ao criar arquivo:", err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println("Erro ao fechar o arquivo:", err)
+		}
+	}(file)
+
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		log.Fatal("Erro ao gerar README:", err)
+	}
+
+	fmt.Println("README_gojira.MD gerado com sucesso!")
 }
