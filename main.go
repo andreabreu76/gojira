@@ -323,7 +323,7 @@ func summarizeResults(results map[string]string) string {
 	}
 
 	prompt := fmt.Sprintf("Crie um resumo consolidado com base nas seguintes análises:\n\n%s", combined)
-	finalSummary, _ := CallOpenAI(prompt) // Utiliza OpenAI para gerar resumo
+	finalSummary, _ := CallOpenAI(prompt)
 	return finalSummary
 }
 
@@ -336,11 +336,10 @@ func generateReadmeFile(summary string) {
 		ContactInfo:      "Fulano da Silva - fulano.silva@yooga.com.br",
 	}
 
-	generateReadme(data) // Usa a função existente para gerar README com o template
+	generateReadme(data)
 }
 
 func generateReadme(data ReadmeData) {
-	// Template do README
 	const readmeTemplate = `# {{.ProjectName}}
 > {{.BriefDescription}}
 
