@@ -236,7 +236,6 @@ func getBranchName() (string, error) {
 }
 
 func getGitDiff() (map[string]string, error) {
-	// Lê o .gitignore, se existir
 	ignoredFiles := getIgnoredFiles()
 
 	cmd := exec.Command("git", "status", "--porcelain")
@@ -248,9 +247,8 @@ func getGitDiff() (map[string]string, error) {
 	modifiedFiles := []string{}
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
-		// Verifica se a linha começa com "M ", "A " ou "?? " (ignora espaços iniciais)
 		if strings.HasPrefix(line, " M") || strings.HasPrefix(line, "A ") || strings.HasPrefix(line, "?? ") {
-			file := strings.TrimSpace(line[3:]) // Remove o prefixo e qualquer espaço extra
+			file := strings.TrimSpace(line[3:])
 			if !isIgnored(file, ignoredFiles) {
 				modifiedFiles = append(modifiedFiles, file)
 			}
@@ -296,7 +294,6 @@ func generateCommitMessage(diffs map[string]string, branch string) (string, erro
 func getIgnoredFiles() []string {
 	filePath := ".gitignore"
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Retorna vazio se o .gitignore não existir
 		return []string{}
 	}
 
@@ -310,7 +307,7 @@ func getIgnoredFiles() []string {
 	var ignoredPatterns []string
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") { // Ignora linhas vazias e comentários
+		if line != "" && !strings.HasPrefix(line, "#") {
 			ignoredPatterns = append(ignoredPatterns, line)
 		}
 	}
