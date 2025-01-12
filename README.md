@@ -77,6 +77,38 @@ cli-task-gen --title "Corrigir erro no login" --type "BUG" --description "Usuár
 
 O programa gerará uma descrição detalhada e a copiará automaticamente para o clipboard.
 
+### Transcrição de Commits Git
+
+Se você estiver em um repositório Git e utilizar o tipo `Commit`, o programa irá:
+1. Detectar automaticamente as alterações não comitadas (incluindo novos arquivos e modificações).
+2. Gerar uma mensagem de commit detalhada no estilo **gitemoji**, contendo:
+    - Um título sucinto.
+    - Uma lista de alterações detectadas no `git diff`.
+    - Menções a novos arquivos criados, com breves descrições baseadas no propósito da branch.
+
+Exemplo de uso:
+
+```bash
+gojira --type "Commit"
+```
+
+#### Exemplo de saída:
+Para uma branch chamada `feat/TOP-123-adicionar-funcionalidade`, o programa pode gerar uma mensagem como:
+
+```plaintext
+:sparkles: feat(TOP-123-adicionar-funcionalidade) Implementação da nova funcionalidade
+
+- Adicionado `services/openai.go` para integrar com a API da OpenAI.
+- Criado `utils/commons/env.go` para gerenciamento de variáveis de ambiente.
+- Modularizada a estrutura do projeto para melhor organização.
+```
+
+Se a branch não seguir o padrão Git Flow (`tipo/nome-da-branch`), o programa utiliza um tipo genérico como `chore` e o nome da branch completo.
+
+#### Requisitos para o tipo Commit:
+- O comando deve ser executado dentro de um repositório Git válido.
+- As alterações devem estar visíveis no `git status`.
+
 ## Importante
 
 Este aplicativo foi criado para melhorar a produtividade, mas os textos gerados devem sempre ser revisados antes de serem usados, pois são produzidos por um modelo de IA e podem conter inconsistências.
