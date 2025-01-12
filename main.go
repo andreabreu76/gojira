@@ -11,6 +11,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -29,7 +31,39 @@ func main() {
 			taskType, _ := cmd.Flags().GetString("type")
 			briefDesc, _ := cmd.Flags().GetString("description")
 
-			if title == "" {
+			if taskType == "Commit" {
+				isRepo, err := isGitRepository()
+				if err != nil {
+					return err
+				}
+				if !isRepo {
+					return errors.New("o diretório atual não é um repositório Git")
+				}
+
+				fmt.Println("Repositório Git detectado. Preparando diffs...")
+
+				branch, err := getBranchName()
+				if err != nil {
+					return err
+				}
+
+				diffs, err := getGitDiff()
+				if err != nil {
+					return err
+				}
+
+				if diffs != nil {
+					commitMessage, err := generateCommitMessage(diffs, branch)
+					if err != nil {
+						return err
+					}
+					fmt.Println("\nMensagem de commit sugerida:\n")
+					fmt.Println(commitMessage)
+				}
+				return nil
+			}
+
+			if taskType != "Commit" && title == "" {
 				return errors.New("o título da tarefa não pode estar vazio")
 			}
 			if taskType != "EPICO" && taskType != "BUG" && taskType != "TASK" {
@@ -38,7 +72,8 @@ func main() {
 
 			model := getModel(taskType)
 
-			prompt := fmt.Sprintf("Crie uma descrição detalhada de uma tarefa do tipo %s com o título '%s'. %s Baseando-se no modelo: %s os testes e infroações para o time de infra são opcionais",
+			prompt := fmt.Sprintf("Crie uma descrição detalhada de uma tarefa do tipo %s com o título '%s'. %s "+
+				"Baseando-se no modelo: %s os testes e informações para o time de infra são opcionais",
 				strings.ToUpper(taskType), title, briefDesc, model)
 
 			response, err := CallOpenAI(prompt)
@@ -58,8 +93,8 @@ func main() {
 		},
 	}
 
-	rootCmd.Flags().StringP("title", "t", "", "Título da tarefa (obrigatório)")
-	rootCmd.Flags().StringP("type", "y", "", "Tipo da tarefa: EPICO, BUG ou TASK (obrigatório)")
+	rootCmd.Flags().StringP("title", "t", "", "Título da tarefa (opcional somente quando o tipo for Commit)")
+	rootCmd.Flags().StringP("type", "y", "", "Tipo da tarefa: EPICO, BUG, TASK ou Commit (obrigatório)")
 	rootCmd.Flags().StringP("description", "d", "", "Descrição breve da tarefa (opcional)")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -177,10 +212,121 @@ func GetEnv(key string) string {
 		return value
 	}
 
-	value = os.Getenv(key)
-	if value == "" {
-		fmt.Printf("Aviso: A variável %s não está definida.\n", key)
+	fmt.Printf("Aviso: A variável %s não está definida.\n", key)
+	return ""
+}
+
+func isGitRepository() (bool, error) {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd.Stderr = nil
+	err := cmd.Run()
+	if err != nil {
+		return false, errors.New("o diretório atual não foi identificado como um repositório Git")
+	}
+	return true, nil
+}
+
+func getBranchName() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", errors.New("erro ao obter o nome da branch")
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func getGitDiff() (map[string]string, error) {
+	// Lê o .gitignore, se existir
+	ignoredFiles := getIgnoredFiles()
+
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, errors.New("erro ao executar git status")
 	}
 
-	return value
+	modifiedFiles := []string{}
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// Verifica se a linha começa com "M ", "A " ou "?? " (ignora espaços iniciais)
+		if strings.HasPrefix(line, " M") || strings.HasPrefix(line, "A ") || strings.HasPrefix(line, "?? ") {
+			file := strings.TrimSpace(line[3:]) // Remove o prefixo e qualquer espaço extra
+			if !isIgnored(file, ignoredFiles) {
+				modifiedFiles = append(modifiedFiles, file)
+			}
+		}
+	}
+
+	if len(modifiedFiles) == 0 {
+		return nil, errors.New("nenhum arquivo modificado ou não rastreado encontrado")
+	}
+
+	fmt.Printf("Arquivos detectados: %v\n\n", modifiedFiles)
+
+	diffs := make(map[string]string)
+	for _, file := range modifiedFiles {
+		cmd = exec.Command("git", "diff", file)
+		diffOutput, err := cmd.Output()
+		if err != nil {
+			return nil, fmt.Errorf("erro ao obter diff para o arquivo %s", file)
+		}
+		diffs[file] = string(diffOutput)
+	}
+
+	if len(diffs) == 0 {
+		return nil, errors.New("nenhuma diferença encontrada nos arquivos selecionados")
+	}
+
+	return diffs, nil
+}
+
+func generateCommitMessage(diffs map[string]string, branch string) (string, error) {
+	prompt := "Você é um assistente de IA. Analise os seguintes diffs do Git e, considerando o contexto da branch atual " +
+		"e as regras do Git Flow, forneça uma mensagem de commit objetiva, clara e sucinta em inglês dos EUA, utilizando " +
+		"gitemoji que reflita a tarefa somente no titulo. Certifique-se de que a mensagem:\n- Reflita as alterações feitas.\n" +
+		"- Alinhe-se com o propósito da branch (por exemplo, feature, bugfix, hotfix, etc.).\n- Use convenções padrão do " +
+		"Git Flow para mensagens de commit.:\n\n"
+	for file, diff := range diffs {
+		prompt += fmt.Sprintf("Branch: %s\nFile: %s\nChanges:\n%s\n\n", branch, file, diff)
+	}
+
+	return CallOpenAI(prompt)
+}
+
+func getIgnoredFiles() []string {
+	filePath := ".gitignore"
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// Retorna vazio se o .gitignore não existir
+		return []string{}
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		fmt.Printf("Erro ao ler o .gitignore: %v\n", err)
+		return []string{}
+	}
+
+	lines := strings.Split(string(content), "\n")
+	var ignoredPatterns []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "#") { // Ignora linhas vazias e comentários
+			ignoredPatterns = append(ignoredPatterns, line)
+		}
+	}
+	return ignoredPatterns
+}
+
+func isIgnored(file string, ignoredPatterns []string) bool {
+	for _, pattern := range ignoredPatterns {
+		matched, err := filepath.Match(pattern, file)
+		if err != nil {
+			fmt.Printf("Erro ao processar o padrão %s: %v\n", pattern, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
 }
