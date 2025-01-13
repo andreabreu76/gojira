@@ -1,26 +1,22 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/atotto/clipboard"
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
-	"io"
-	"net/http"
+	"gojira/functions"
+	"gojira/services"
+	"gojira/utils/commons"
+	"gojira/utils/git"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
-	"time"
 )
 
 var version = "dev"
 
 func main() {
-	LoadEnv()
+	commons.LoadEnv()
 
 	var rootCmd = &cobra.Command{
 		Use: "gojira",
@@ -33,7 +29,7 @@ func main() {
 			briefDesc, _ := cmd.Flags().GetString("description")
 
 			if taskType == "Commit" {
-				isRepo, err := isGitRepository()
+				isRepo, err := git.IsGitRepository()
 				if err != nil {
 					return err
 				}
@@ -43,18 +39,18 @@ func main() {
 
 				fmt.Println("Repositório Git detectado. Preparando diffs...")
 
-				branch, err := getBranchName()
+				branch, err := git.GetBranchName()
 				if err != nil {
 					return err
 				}
 
-				diffs, err := getGitDiff()
+				diffs, err := git.GetGitDiff()
 				if err != nil {
 					return err
 				}
 
 				if diffs != nil {
-					commitMessage, err := generateCommitMessage(diffs, branch)
+					commitMessage, err := functions.GenerateCommitMessage(diffs, branch)
 					if err != nil {
 						return err
 					}
@@ -71,13 +67,13 @@ func main() {
 				return errors.New("tipo de tarefa inválido. Use EPICO, BUG ou TASK")
 			}
 
-			model := getModel(taskType)
+			model := commons.GetModel(taskType)
 
 			prompt := fmt.Sprintf("Crie uma descrição detalhada de uma tarefa do tipo %s com o título '%s'. %s "+
 				"Baseando-se no modelo: %s os testes e informações para o time de infra são opcionais",
 				strings.ToUpper(taskType), title, briefDesc, model)
 
-			response, err := CallOpenAI(prompt)
+			response, err := services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
 			if err != nil {
 				return err
 			}
@@ -102,267 +98,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func getModel(taskType string) string {
-	switch strings.ToUpper(taskType) {
-	case "EPICO", "TASK":
-		return `
-Objetivo:
-Como:
-Critérios de Aceite:
-Testes:
-Informações para o time de Infra:
-Outras observações:
-`
-	case "BUG":
-		return `
-Resumo
-
-Título do bug:
-ID do bug:
-Data de identificação:
-Cliente:
-Autor do ticket:
-
-Descrição:
-Passos para reproduzir:
-Comportamento esperado:
-Comportamento real:
-Capturas de tela:
-
-Ambiente:
-Sistema operacional:
-Navegador:
-Versão do App/Dashboard/Emissor:
-Dispositivo:
-
-Informações para o time de Infra:
-
-Outras observações:
-`
-	default:
-		return ""
-	}
-}
-
-func CallOpenAI(prompt string) (string, error) {
-	apiKey := GetEnv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return "", errors.New("OPENAI_API_KEY não definido no arquivo .env")
-	}
-
-	url := "https://api.openai.com/v1/chat/completions"
-	body := map[string]interface{}{
-		"model":    "gpt-4o",
-		"messages": []map[string]string{{"role": "user", "content": prompt}},
-	}
-
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("Erro ao fechar o corpo da resposta")
-		}
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("falha na chamada à API: %s", resp.Status)
-	}
-
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-
-	if choices, ok := result["choices"].([]interface{}); ok && len(choices) > 0 {
-		firstChoice := choices[0].(map[string]interface{})
-		return firstChoice["message"].(map[string]interface{})["content"].(string), nil
-	}
-
-	return "", errors.New("resposta inesperada da API")
-}
-
-func LoadEnv() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Println("Aviso: Arquivo .env não encontrado. Verificando variáveis de ambiente do sistema...")
-	}
-}
-
-func GetEnv(key string) string {
-	value := os.Getenv(key)
-	if value != "" {
-		return value
-	}
-
-	fmt.Printf("Aviso: A variável %s não está definida.\n", key)
-	return ""
-}
-
-func isGitRepository() (bool, error) {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	cmd.Stderr = nil
-	err := cmd.Run()
-	if err != nil {
-		return false, errors.New("o diretório atual não foi identificado como um repositório Git")
-	}
-	return true, nil
-}
-
-func getBranchName() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", errors.New("erro ao obter o nome da branch")
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-func getGitDiff() (map[string]string, error) {
-	// Lê o .gitignore, se existir
-	ignoredFiles := getIgnoredFiles()
-
-	cmd := exec.Command("git", "status", "--porcelain")
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, errors.New("erro ao executar git status")
-	}
-
-	modifiedFiles := []string{}
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		// Verifica se a linha começa com "M ", "A " ou "?? " (ignora espaços iniciais)
-		if strings.HasPrefix(line, " M") || strings.HasPrefix(line, "A ") || strings.HasPrefix(line, "?? ") {
-			file := strings.TrimSpace(line[3:]) // Remove o prefixo e qualquer espaço extra
-			if !isIgnored(file, ignoredFiles) {
-				modifiedFiles = append(modifiedFiles, file)
-			}
-		}
-	}
-
-	if len(modifiedFiles) == 0 {
-		return nil, errors.New("nenhum arquivo modificado ou não rastreado encontrado")
-	}
-
-	fmt.Printf("Arquivos detectados: %v\n\n", modifiedFiles)
-
-	diffs := make(map[string]string)
-	for _, file := range modifiedFiles {
-		cmd = exec.Command("git", "diff", file)
-		diffOutput, err := cmd.Output()
-		if err != nil {
-			return nil, fmt.Errorf("erro ao obter diff para o arquivo %s", file)
-		}
-		diffs[file] = string(diffOutput)
-	}
-
-	if len(diffs) == 0 {
-		return nil, errors.New("nenhuma diferença encontrada nos arquivos selecionados")
-	}
-
-	return diffs, nil
-}
-
-//goland:noinspection GoPrintFunctions
-func generateCommitMessage(diffs map[string]string, branch string) (string, error) {
-	commitType, context, err := parseBranchForCommitType(branch)
-	if err != nil {
-		return "", err
-	}
-
-	prompt := fmt.Sprintf(
-		"Você é um assistente de IA. Analise os seguintes diffs do Git e, considerando o contexto da branch atual "+
-			"e as regras do Git Flow, forneça uma mensagem de commit no seguinte formato, **sem introduções ou explicações adicionais**:\n\n"+
-			" %s(%s) Refactor project structure for better modularity\n\n"+
-			"- Item 1: Descrição breve e clara do que foi alterado ou adicionado.\n"+
-			"- Item 2: Descrição breve e clara de outra alteração ou melhoria.\n"+
-			"- ... (adicione mais itens conforme necessário para refletir as mudanças).\n\n"+
-			"Certifique-se de que:\n"+
-			"- É imprencidivel o uso de gitemoji no titulo do commit de acordo com o tipo de commit ou que reflita o contexto.\n"+
-			"- Utilize prioritariamente o gitflow e o padrão de commits do projeto.\n"+
-			"- O título seja objetivo e resuma a essência das alterações.\n"+
-			"- Os itens mencionem os novos arquivos criados (se houver) e suas funções, sem se limitar a extensões específicas.\n"+
-			"- A mensagem seja clara e reflita as mudanças de forma concisa.\n\n"+
-			"Por exemplo:\n\n"+
-			":gitemoji: commit_type(branch_name) Refactor project structure for better modularity\n\n"+
-			"- Created new files to separate concerns and improve organization.\n"+
-			"- Modularized the codebase by introducing utility and service layers.\n"+
-			"- Enhanced main entry point to integrate the refactored structure.\n\n"+
-			"Responda **preferencialmente** no formato acima.",
-		"{{commit objective like feat, fix, chore}}", commitType, context)
-	for file, diff := range diffs {
-		prompt += fmt.Sprintf("Branch: %s\nFile: %s\nChanges:\n%s\n\n", branch, file, diff)
-	}
-
-	return CallOpenAI(prompt)
-}
-
-func getIgnoredFiles() []string {
-	filePath := ".gitignore"
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Retorna vazio se o .gitignore não existir
-		return []string{}
-	}
-
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		fmt.Printf("Erro ao ler o .gitignore: %v\n", err)
-		return []string{}
-	}
-
-	lines := strings.Split(string(content), "\n")
-	var ignoredPatterns []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") { // Ignora linhas vazias e comentários
-			ignoredPatterns = append(ignoredPatterns, line)
-		}
-	}
-	return ignoredPatterns
-}
-
-func isIgnored(file string, ignoredPatterns []string) bool {
-	for _, pattern := range ignoredPatterns {
-		matched, err := filepath.Match(pattern, file)
-		if err != nil {
-			fmt.Printf("Erro ao processar o padrão %s: %v\n", pattern, err)
-			continue
-		}
-		if matched {
-			return true
-		}
-	}
-	return false
-}
-
-func parseBranchForCommitType(branch string) (string, string, error) {
-	parts := strings.Split(branch, "/")
-	if len(parts) < 2 {
-		commitType := "hotfix"
-		context := branch
-		return commitType, context, nil
-	}
-
-	commitType := parts[0]
-	context := strings.Join(parts[1:], "/")
-
-	return commitType, context, nil
 }
