@@ -29,33 +29,31 @@ func GetBranchName() (string, error) {
 func GetGitDiff() (map[string]string, error) {
 	ignoredFiles := GetIgnoredFiles()
 
-	cmd := exec.Command("git", "status", "--porcelain")
+	// Obtém somente arquivos staged
+	cmd := exec.Command("git", "diff", "--name-only", "--cached")
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, errors.New("erro ao executar git status")
+		return nil, errors.New("erro ao executar git diff --cached")
 	}
 
 	modifiedFiles := []string{}
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
-		// Verifica se a linha começa com "M ", "A " ou "?? " (ignora espaços iniciais)
-		if strings.HasPrefix(line, " M") || strings.HasPrefix(line, "A ") || strings.HasPrefix(line, "?? ") {
-			file := strings.TrimSpace(line[3:]) // Remove o prefixo e qualquer espaço extra
-			if !IsIgnored(file, ignoredFiles) {
-				modifiedFiles = append(modifiedFiles, file)
-			}
+		line = strings.TrimSpace(line)
+		if line != "" && !IsIgnored(line, ignoredFiles) {
+			modifiedFiles = append(modifiedFiles, line)
 		}
 	}
 
 	if len(modifiedFiles) == 0 {
-		return nil, errors.New("nenhum arquivo modificado ou não rastreado encontrado")
+		return nil, errors.New("nenhum arquivo staged encontrado")
 	}
 
-	fmt.Printf("Arquivos detectados: %v\n\n", modifiedFiles)
+	fmt.Printf("Arquivos detectados (staged): %v\n\n", modifiedFiles)
 
 	diffs := make(map[string]string)
 	for _, file := range modifiedFiles {
-		cmd = exec.Command("git", "diff", file)
+		cmd = exec.Command("git", "diff", "--cached", "--", file) // Obtém o diff somente dos arquivos staged
 		diffOutput, err := cmd.Output()
 		if err != nil {
 			return nil, fmt.Errorf("erro ao obter diff para o arquivo %s", file)
@@ -64,7 +62,7 @@ func GetGitDiff() (map[string]string, error) {
 	}
 
 	if len(diffs) == 0 {
-		return nil, errors.New("nenhuma diferença encontrada nos arquivos selecionados")
+		return nil, errors.New("nenhuma diferença encontrada nos arquivos staged")
 	}
 
 	return diffs, nil
