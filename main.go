@@ -19,9 +19,8 @@ func main() {
 	commons.LoadEnv()
 
 	var rootCmd = &cobra.Command{
-		Use: "gojira",
-		Short: "Uma ferramenta CLI de uso interno para criar descrições de tarefas para o Jira ou mensagens de commit " +
-			"se estiver em um repositório Git e houver arquivos modificados",
+		Use:     "gojira",
+		Short:   "Uma ferramenta CLI de uso interno para criar descrições de tarefas para o Jira ou mensagens de commit se estiver em um repositório Git e houver arquivos modificados",
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			title, _ := cmd.Flags().GetString("title")
@@ -89,6 +88,16 @@ func main() {
 			return nil
 		},
 	}
+
+	var readmeCmd = &cobra.Command{
+		Use:   "readme",
+		Short: "Gera um README.md com base na estrutura e conteúdo do projeto",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return functions.GenerateReadme()
+		},
+	}
+
+	rootCmd.AddCommand(readmeCmd)
 
 	rootCmd.Flags().StringP("title", "t", "", "Título da tarefa (opcional somente quando o tipo for Commit)")
 	rootCmd.Flags().StringP("type", "y", "", "Tipo da tarefa: EPICO, BUG, TASK ou Commit (obrigatório)")
