@@ -29,7 +29,6 @@ func GetBranchName() (string, error) {
 func GetGitDiff() (map[string]string, error) {
 	ignoredFiles := GetIgnoredFiles()
 
-	// Obtém somente arquivos staged
 	cmd := exec.Command("git", "diff", "--name-only", "--cached")
 	output, err := cmd.Output()
 	if err != nil {

@@ -17,7 +17,7 @@ func CallOpenAiCompletions(prompt string, apiKey string) (string, error) {
 
 	url := "https://api.openai.com/v1/chat/completions"
 	body := map[string]interface{}{
-		"model":    "gpt-4",
+		"model":    "gpt-4o-mini",
 		"messages": []map[string]string{{"role": "user", "content": prompt}},
 	}
 
@@ -34,7 +34,7 @@ func CallOpenAiCompletions(prompt string, apiKey string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -43,8 +43,9 @@ func CallOpenAiCompletions(prompt string, apiKey string) (string, error) {
 		_ = Body.Close()
 	}(resp.Body)
 
+	formattedBody, err := json.MarshalIndent(body, "", "  ")
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("falha na chamada à API: %s", resp.Status)
+		return "", fmt.Errorf("falha na chamada à API (%d): %s", resp.StatusCode, string(formattedBody))
 	}
 
 	var result map[string]interface{}
