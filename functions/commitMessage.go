@@ -40,7 +40,7 @@ func GenerateCommitMessage(diffs map[string]string, branch string) (string, erro
 			"- The items must mention modified files and their functions.\n"+
 			"- The message should be concise and accurately reflect the changes.\n\n"+
 			"Example:\n\n"+
-			"fix: [MBUNI-3849] Correct last-month date calculation\n\n"+
+			"fix: [ABCD-1234] Correct last-month date calculation\n\n"+
 			"- Fixed algorithm to correctly calculate the last date of the month.\n"+
 			"- Resolved inconsistency in monthly report generation.\n"+
 			"- Added unit tests for edge cases.\n\n"+
