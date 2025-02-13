@@ -25,7 +25,7 @@ func GenerateCommitMessage(diffs map[string]string, branch string) (string, erro
 			"Mandatory rules:\n"+
 			"- The commit message must follow the format: `type: [TICKET] Message`.\n"+
 			"- `TICKET` must be extracted from the branch name and placed in brackets.\n"+
-			"- The `TICKET` is usually composed of two or more uppercase letters followed by a hyphen and a sequence of digits (e.g., MBUNI-1234).\n"+
+			"- The `TICKET` is usually composed of two or more uppercase letters followed by a hyphen and a sequence of digits (e.g., ABCD-1234).\n"+
 			"- Extract the `TICKET` from the branch name using this pattern: `[A-Z]{2,}-\\d+`.\n"+
 			"- If no valid ticket is found in the branch name, leave this section empty.\n"+
 			"- `type` must be one of the following:\n"+
