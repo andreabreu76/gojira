@@ -17,7 +17,7 @@ func CallOpenAiCompletions(prompt string, apiKey string) (string, error) {
 
 	url := "https://api.openai.com/v1/chat/completions"
 	body := map[string]interface{}{
-		"model":    "gpt-4o-mini",
+		"model":    "gpt-4o",
 		"messages": []map[string]string{{"role": "user", "content": prompt}},
 	}
 

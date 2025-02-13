@@ -15,27 +15,40 @@ func GenerateCommitMessage(diffs map[string]string, branch string) (string, erro
 	}
 
 	prompt := fmt.Sprintf(
-		"Você é um assistente de IA. Analise os seguintes diffs do Git e, considerando o contexto da branch atual "+
-			"e as regras do Git Flow, forneça uma mensagem de commit no seguinte formato, **sem introduções ou explicações adicionais**:\n\n"+
-			" %s(%s) Refactor project structure for better modularity\n\n"+
-			"- Item 1: Descrição breve e clara do que foi alterado ou adicionado.\n"+
-			"- Item 2: Descrição breve e clara de outra alteração ou melhoria.\n"+
-			"- ... (adicione mais itens conforme necessário para refletir as mudanças).\n\n"+
-			"Certifique-se de que:\n"+
-			"- É imprencidivel o uso de gitemoji no titulo do commit de acordo com o tipo de commit ou que reflita o contexto.\n"+
-			"- Utilize prioritariamente o gitflow e o padrão de commits do projeto.\n"+
-			"- O título seja objetivo e resuma a essência das alterações.\n"+
-			"- Os itens mencionem os novos arquivos criados (se houver) e suas funções, sem se limitar a extensões específicas.\n"+
-			"- A mensagem seja clara e reflita as mudanças de forma concisa.\n\n"+
-			"Por exemplo:\n\n"+
-			":gitemoji: commit_type(branch_name) Refactor project structure for better modularity\n\n"+
-			"- Created new files to separate concerns and improve organization.\n"+
-			"- Modularized the codebase by introducing utility and service layers.\n"+
-			"- Enhanced main entry point to integrate the refactored structure.\n\n"+
-			"Responda **preferencialmente** no formato acima.",
-		"{{commit objective like feat, fix, chore}}", commitType, context)
+		"You are an AI assistant trained to generate commit messages following the Conventional Commits standard. "+
+			"Analyze the Git diffs below and, based on the current branch context and Git Flow rules, generate a commit message "+
+			"with the following format, **without introductions or explanations**:\n\n"+
+			"  %s: [%s] Concise commit message in US English\n\n"+
+			"- Item 1: Brief and clear description of what was changed or added.\n"+
+			"- Item 2: Another brief description of an improvement or fix.\n"+
+			"- ... (add more items if necessary).\n\n"+
+			"Mandatory rules:\n"+
+			"- The commit message must follow the format: `type: [TICKET] Message`.\n"+
+			"- `TICKET` must be extracted from the branch name and placed in brackets.\n"+
+			"- The `TICKET` is usually composed of two or more uppercase letters followed by a hyphen and a sequence of digits (e.g., MBUNI-1234).\n"+
+			"- Extract the `TICKET` from the branch name using this pattern: `[A-Z]{2,}-\\d+`.\n"+
+			"- If no valid ticket is found in the branch name, leave this section empty.\n"+
+			"- `type` must be one of the following:\n"+
+			"  - `feat` for new features\n"+
+			"  - `fix` for bug fixes\n"+
+			"  - `chore` for maintenance tasks\n"+
+			"  - `refactor` for code improvements without changing behavior\n"+
+			"  - `docs` for documentation changes\n"+
+			"  - `test` for adding or improving tests\n"+
+			"  - `style` for formatting changes\n"+
+			"- The commit title must be short and clearly describe the changes.\n"+
+			"- The items must mention modified files and their functions.\n"+
+			"- The message should be concise and accurately reflect the changes.\n\n"+
+			"Example:\n\n"+
+			"fix: [MBUNI-3849] Correct last-month date calculation\n\n"+
+			"- Fixed algorithm to correctly calculate the last date of the month.\n"+
+			"- Resolved inconsistency in monthly report generation.\n"+
+			"- Added unit tests for edge cases.\n\n"+
+			"Respond **exactly** in the format above, without additional explanations.",
+		commitType, context)
+
 	for file, diff := range diffs {
-		prompt += fmt.Sprintf("Branch: %s\nFile: %s\nChanges:\n%s\n\n", branch, file, diff)
+		prompt += fmt.Sprintf("\n\nBranch: %s\nFile: %s\nChanges:\n%s\n", branch, file, diff)
 	}
 
 	return services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))

@@ -1,118 +1,92 @@
-# CLI Task Description Generator
+# GoJira - Project Status: In Development
 
-Este é um aplicativo CLI escrito em Go para gerar descrições detalhadas de tarefas usando IA (OpenAI). Ele foi criado para melhorar a produtividade ao criar descrições para tarefas, bugs e épicos, mas o texto gerado deve sempre passar por uma revisão, pois é gerado por IA.
+## Description
 
-## Instalação de binarios
+GoJira is a command-line tool designed to enhance productivity by providing streamlined functionality for generating commit messages and README files. It leverages AI to assist in maintaining high-quality documentation and version control practices within software projects.
 
-Execute o seguinte comando no terminal para baixar e instalar o aplicativo automaticamente:
+## Technologies Used
 
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/andreabreu76/gojira/main/install.sh)"
+- **Go**: The primary programming language used for development.
+- **OpenAI API**: Powers the AI-driven functionalities such as message generation.
+
+## Project Structure
+
+Below is the hierarchical representation of the project files:
+
+```
+.
+├── README.md
+├── functions
+│   ├── commitMessage.go      # Handles commit message generation
+│   └── generateReadme.go     # Facilitates README file creation
+├── go.mod                    # Module definition file for Go
+├── go.sum                    # Dependencies checksum file
+├── gojira                    # Main binary file after build
+├── install.sh                # Script for setting up the project locally
+├── main.go                   # Entry point of the application
+├── releases
+│   └── latest                # Directory for storing the latest release
+├── services
+│   └── openai.go             # Integration with OpenAI API
+└── utils
+    ├── commons               # Common utility functions
+    └── git                   # Git-related utilities
 ```
 
-Este script detecta o sistema operacional e a arquitetura automaticamente, baixa o binário correto da última release do repositório GitHub e o instala em `/usr/local/bin`.
+## Installation
 
-## Requisitos para compilação
+To set up GoJira locally, follow these steps:
 
-Certifique-se de que você possui as seguintes dependências instaladas no seu sistema:
-
-1. **Go (Golang)**:
-   - Instale o Go seguindo as instruções oficiais: [Download Go](https://go.dev/dl/).
-   - Após instalar, verifique a instalação:
-     ```bash
-     go version
-     ```
-
-2. **Chave da OpenAI (OPENAI_API_KEY)**:
-   - Para que o aplicativo funcione, é necessário ter uma chave válida da OpenAI.
-   - Defina a chave no ambiente do sistema:
-     - No Linux/MacOS:
-       ```bash
-       export OPENAI_API_KEY="sua-chave-aqui"
-       ```
-     - No Windows:
-       ```cmd
-       set OPENAI_API_KEY=sua-chave-aqui
-       ```
-
-   - Alternativamente, crie um arquivo `.env` no mesmo diretório do aplicativo com o seguinte conteúdo:
-     ```
-     OPENAI_API_KEY=sua-chave-aqui
-     ```
-
-## Como Baixar e Compilar
-
-1. Clone este repositório em sua máquina:
+1. Clone the repository:
    ```bash
-   git clone git@github.com:andreabreu76/gojira.git
+   git clone https://github.com/yourusername/gojira.git
    cd gojira
    ```
 
-2. Compile o binário:
+2. Run the installation script:
    ```bash
-   go build -o gojira
+   chmod +x install.sh
+   ./install.sh
    ```
 
-3. Crie um link simbólico para facilitar a execução:
+3. Ensure Go is installed and the `$GOPATH` is correctly set.
+
+4. Build the project:
    ```bash
-   sudo ln -s $(pwd)/gojira /usr/local/bin/gojira
+   go build -o gojira main.go
    ```
 
-   Agora você pode executar o programa de qualquer lugar usando:
-   ```bash
-   gojira
-   ```
+## Usage
 
-## Como Usar
+After installation, you can use GoJira from the command line:
 
-Execute o programa com as opções necessárias. Exemplo:
+- To generate a commit message:
+  ```bash
+  ./gojira commit <your-change-description>
+  ```
 
-```bash
-cli-task-gen --title "Corrigir erro no login" --type "BUG" --description "Usuários não conseguem acessar o sistema"
-```
+- To generate a README file:
+  ```bash
+  ./gojira readme <project-path>
+  ```
 
-- **`--title`**: O título da tarefa (obrigatório).
-- **`--type`**: O tipo da tarefa (EPICO, BUG ou TASK) (obrigatório).
-- **`--description`**: Uma breve descrição da tarefa (opcional).
+## API Documentation
 
-O programa gerará uma descrição detalhada e a copiará automaticamente para o clipboard.
+The project integrates with the OpenAI API to provide its AI functionalities. You must configure your API keys in the `services/openai.go` file before using the tool.
 
-### Transcrição de Commits Git
+1. Obtain an API key from OpenAI and add it to your environment variables or directly in the code file.
+2. Ensure network connectivity to enable API calls.
 
-Se você estiver em um repositório Git e utilizar o tipo `Commit`, o programa irá:
-1. Detectar automaticamente as alterações não comitadas (incluindo novos arquivos e modificações).
-2. Gerar uma mensagem de commit detalhada no estilo **gitemoji**, contendo:
-    - Um título sucinto.
-    - Uma lista de alterações detectadas no `git diff`.
-    - Menções a novos arquivos criados, com breves descrições baseadas no propósito da branch.
+## Contributing
 
-Exemplo de uso:
+Contributions are welcome! Please follow these guidelines:
 
-```bash
-gojira --type "Commit"
-```
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/new-feature`).
+3. Make your changes and commit them (`git commit -m "Add new feature"`).
+4. Push to the branch (`git push origin feature/new-feature`).
+5. Open a Pull Request, describing what you have done.
 
-#### Exemplo de saída:
-Para uma branch chamada `feat/TOP-123-adicionar-funcionalidade`, o programa pode gerar uma mensagem como:
+## License
 
-```plaintext
-:sparkles: feat(TOP-123-adicionar-funcionalidade) Implementação da nova funcionalidade
-
-- Adicionado `services/openai.go` para integrar com a API da OpenAI.
-- Criado `utils/commons/env.go` para gerenciamento de variáveis de ambiente.
-- Modularizada a estrutura do projeto para melhor organização.
-```
-
-Se a branch não seguir o padrão Git Flow (`tipo/nome-da-branch`), o programa utiliza um tipo genérico como `chore` e o nome da branch completo.
-
-#### Requisitos para o tipo Commit:
-- O comando deve ser executado dentro de um repositório Git válido.
-- As alterações devem estar visíveis no `git status`.
-
-## Importante
-
-Este aplicativo foi criado para melhorar a produtividade, mas os textos gerados devem sempre ser revisados antes de serem usados, pois são produzidos por um modelo de IA e podem conter inconsistências.
-
-## Contribuições
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests.
+This project is licensed under the MIT License. See the LICENSE file for more details.

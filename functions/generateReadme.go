@@ -13,7 +13,7 @@ import (
 	"gojira/utils/git"
 )
 
-func GenerateReadme() error {
+func GenerateReadmeOLD() error {
 	// Verifica se o diretório atual é um repositório Git
 	isRepo, err := git.IsGitRepository()
 	if err != nil {
@@ -50,6 +50,60 @@ func GenerateReadme() error {
 
 	fmt.Println(readmeContent)
 
+	return nil
+}
+
+func GenerateReadme() error {
+	isRepo, err := git.IsGitRepository()
+	if err != nil {
+		return fmt.Errorf("erro ao verificar repositório Git: %v", err)
+	}
+	if !isRepo {
+		return errors.New("diretório não é um repositório Git")
+	}
+
+	treeOutput, err := exec.Command("tree", "-L", "2").Output()
+	if err != nil {
+		return fmt.Errorf("erro ao executar comando tree: %v", err)
+	}
+
+	filesData, err := getRepoFilesDetails(".")
+	if err != nil {
+		return fmt.Errorf("erro ao obter detalhes dos arquivos: %v", err)
+	}
+
+	prompt := fmt.Sprintf(
+		"You are an AI assistant specialized in technical documentation.\n\n"+
+			"Analyze the project structure and generate a well-structured README.md following best practices. "+
+			"Ensure the README is written in **US English** and includes the following sections:\n\n"+
+			"1. **Project Name** - Name and status.\n"+
+			"2. **Description** - Summary of the project's purpose and functionality.\n"+
+			"3. **Technologies Used** - List of main technologies.\n"+
+			"4. **Project Structure** - Hierarchical representation of files.\n"+
+			"5. **Installation** - Step-by-step guide for local setup.\n"+
+			"6. **Usage** - Basic usage examples.\n"+
+			"7. **API Documentation** - Instructions if there are API endpoints.\n"+
+			"8. **Contributing** - Guidelines for contributing to the project.\n"+
+			"9. **License** - License type used.\n\n"+
+			"Use the project file structure below to generate the correct documentation:\n\n"+
+			"**Project Structure:**\n\n%s\n\n"+
+			"**File Details:**\n\n%s\n\n"+
+			"Generate a README that is well-formatted and correctly structured using Markdown.",
+		treeOutput,
+		filesData,
+	)
+
+	readmeContent, err := services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("README.md", []byte(readmeContent), 0644)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar README.md: %v", err)
+	}
+
+	fmt.Println("README.md gerado com sucesso!")
 	return nil
 }
 
