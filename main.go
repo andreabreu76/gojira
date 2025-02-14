@@ -97,7 +97,16 @@ func main() {
 		},
 	}
 
+	var analysisCmd = &cobra.Command{
+		Use:   "analysis",
+		Short: "Gera uma análise de código-fonte com base nos arquivos do projeto",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return functions.GenerateAnalysis()
+		},
+	}
+
 	rootCmd.AddCommand(readmeCmd)
+	rootCmd.AddCommand(analysisCmd)
 
 	rootCmd.Flags().StringP("title", "t", "", "Título da tarefa (opcional somente quando o tipo for Commit)")
 	rootCmd.Flags().StringP("type", "y", "", "Tipo da tarefa: EPICO, BUG, TASK ou Commit (obrigatório)")
