@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func GenerateAnalysis() error {
@@ -31,6 +32,11 @@ func GenerateAnalysis() error {
 
 	prompt := buildAnalysisPrompt(fileContents)
 
+	// Gravar o prompt em um log antes de enviar para OpenAI
+	if err := logPrompt(prompt); err != nil {
+		return fmt.Errorf("erro ao gravar log da análise: %w", err)
+	}
+
 	response, err := services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
 	if err != nil {
 		return fmt.Errorf("erro ao obter resposta da OpenAI: %w", err)
@@ -50,8 +56,12 @@ func getProjectFiles(root string) ([]string, error) {
 			return err
 		}
 
-		if d.IsDir() && (strings.Contains(path, ".git") || strings.Contains(path, "node_modules") || strings.Contains(path, "vendor")) {
-			return filepath.SkipDir
+		if d.IsDir() && (strings.Contains(path, ".git") ||
+			strings.Contains(path, "node_modules") ||
+			strings.Contains(path, "vendor")) {
+			if !strings.HasPrefix(path, ".github/workflows") {
+				return filepath.SkipDir
+			}
 		}
 
 		if !d.IsDir() && isCodeFile(path) {
@@ -89,13 +99,20 @@ func buildAnalysisPrompt(files map[string]string) string {
 	var builder strings.Builder
 
 	builder.WriteString("Você é um assistente especializado em análise de código-fonte.\n")
-	builder.WriteString("Aqui estão os arquivos de um projeto de desenvolvimento. Analise a estrutura, lógica, sistema de logs e técnicas usadas.\n\n")
+	builder.WriteString("Aqui estão os arquivos de um projeto de desenvolvimento. Analise detalhadamente a estrutura, lógica, " +
+		"sistema de logs, técnicas utilizadas e, se presente, a configuração de CI/CD.\n\n")
+
+	var ciCdFiles []string
 
 	for file, content := range files {
 		builder.WriteString(fmt.Sprintf("Arquivo: %s\n", file))
 		builder.WriteString("Código:\n```\n")
 		builder.WriteString(content)
 		builder.WriteString("\n```\n\n")
+
+		if strings.HasPrefix(file, ".github/workflows/") {
+			ciCdFiles = append(ciCdFiles, file)
+		}
 	}
 
 	builder.WriteString("Com base nos arquivos acima, gere um documento explicando:\n")
@@ -103,16 +120,49 @@ func buildAnalysisPrompt(files map[string]string) string {
 	builder.WriteString("- Principais funcionalidades e lógica\n")
 	builder.WriteString("- Estrutura do código e organização\n")
 	builder.WriteString("- Técnicas utilizadas (padrões de projeto, frameworks, etc.)\n")
-	builder.WriteString("- Explique as funções (auxiliares, de serviço ou handlers)\n")
+	builder.WriteString("- Explicação detalhada das funções (auxiliares, de serviço ou handlers)\n")
 	builder.WriteString("- Como o sistema de logs funciona\n\n")
+
+	if len(ciCdFiles) > 0 {
+		builder.WriteString("### Análise de CI/CD\n")
+		builder.WriteString("O projeto contém arquivos de configuração de CI/CD. Avalie como o pipeline está estruturado e identifique:\n")
+		builder.WriteString("- Ferramentas utilizadas (GitHub Actions, CircleCI, etc.)\n")
+		builder.WriteString("- Passos do pipeline (build, test, deploy)\n")
+		builder.WriteString("- Melhorias sugeridas\n\n")
+	}
+
 	builder.WriteString("Responda de forma mais detalhada e técnica possível para um desenvolvedor novo no projeto.")
 
 	return builder.String()
 }
 
+func logPrompt(prompt string) error {
+	logDir := filepath.Join(os.Getenv("HOME"), ".log")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return fmt.Errorf("erro ao criar diretório de logs: %w", err)
+	}
+
+	timestamp := time.Now().Format("20060102-150405")
+	logFile := filepath.Join(logDir, fmt.Sprintf("%s-gojira-analysis.log", timestamp))
+
+	file, err := os.Create(logFile)
+	if err != nil {
+		return fmt.Errorf("erro ao criar arquivo de log: %w", err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("erro ao fechar arquivo de log: %v", err)
+		}
+	}(file)
+
+	_, err = file.WriteString(prompt)
+	return err
+}
+
 func isCodeFile(path string) bool {
 	ext := filepath.Ext(path)
-	codeExtensions := []string{".go", ".js", ".ts", ".py", ".java", ".cpp", ".h", ".cs", ".rb", ".php", ".rs"}
+	codeExtensions := []string{".go", ".js", ".ts", ".py", ".java", ".cpp", ".h", ".cs", ".rb", ".php", ".rs", ".yaml", ".yml"}
 	for _, e := range codeExtensions {
 		if ext == e {
 			return true
