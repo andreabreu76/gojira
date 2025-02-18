@@ -14,8 +14,6 @@ import (
 )
 
 func GenerateAnalysis() error {
-	fmt.Println("Iniciando análise do projeto...")
-
 	files, err := getProjectFiles(".")
 	if err != nil {
 		return fmt.Errorf("erro ao obter arquivos do projeto: %w", err)
@@ -32,7 +30,6 @@ func GenerateAnalysis() error {
 
 	prompt := buildAnalysisPrompt(fileContents)
 
-	// Gravar o prompt em um log antes de enviar para OpenAI
 	if err := logPrompt(prompt); err != nil {
 		return fmt.Errorf("erro ao gravar log da análise: %w", err)
 	}
@@ -56,15 +53,13 @@ func getProjectFiles(root string) ([]string, error) {
 			return err
 		}
 
-		if d.IsDir() && (strings.Contains(path, ".git") ||
-			strings.Contains(path, "node_modules") ||
-			strings.Contains(path, "vendor")) {
+		if d.IsDir() && (strings.Contains(path, ".git") || strings.Contains(path, "node_modules") || strings.Contains(path, "vendor")) {
 			if !strings.HasPrefix(path, ".github/workflows") {
 				return filepath.SkipDir
 			}
 		}
 
-		if !d.IsDir() && isCodeFile(path) {
+		if !d.IsDir() && (isCodeFile(path) || isYamlFile(path)) {
 			files = append(files, path)
 		}
 
@@ -102,7 +97,7 @@ func buildAnalysisPrompt(files map[string]string) string {
 	builder.WriteString("Aqui estão os arquivos de um projeto de desenvolvimento. Analise detalhadamente a estrutura, lógica, " +
 		"sistema de logs, técnicas utilizadas e, se presente, a configuração de CI/CD.\n\n")
 
-	var ciCdFiles []string
+	ciCdFiles := []string{}
 
 	for file, content := range files {
 		builder.WriteString(fmt.Sprintf("Arquivo: %s\n", file))
@@ -162,13 +157,18 @@ func logPrompt(prompt string) error {
 
 func isCodeFile(path string) bool {
 	ext := filepath.Ext(path)
-	codeExtensions := []string{".go", ".js", ".ts", ".py", ".java", ".cpp", ".h", ".cs", ".rb", ".php", ".rs", ".yaml", ".yml"}
+	codeExtensions := []string{".go", ".js", ".ts", ".py", ".java", ".cpp", ".h", ".cs", ".rb", ".php", ".rs"}
 	for _, e := range codeExtensions {
 		if ext == e {
 			return true
 		}
 	}
 	return false
+}
+
+func isYamlFile(path string) bool {
+	ext := filepath.Ext(path)
+	return ext == ".yaml" || ext == ".yml"
 }
 
 func isBinary(content []byte) bool {
