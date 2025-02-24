@@ -41,7 +41,6 @@ func GenerateAnalysis() error {
 		return fmt.Errorf("erro ao obter resposta da OpenAI: %w", err)
 	}
 
-	fmt.Println("\n=== Análise do Projeto ===")
 	fmt.Println(response)
 
 	return nil
@@ -112,13 +111,20 @@ func readProjectFiles(files []string) (map[string]string, error) {
 func buildAnalysisPrompt(files map[string]string, projectName string) string {
 	var builder strings.Builder
 
-	builder.WriteString(fmt.Sprintf("# Análise do Projeto: %s\n\n", projectName))
-	builder.WriteString("Você é um assistente especializado em análise de código-fonte.\n")
-	builder.WriteString("Aqui estão os arquivos de um projeto de desenvolvimento. Analise detalhadamente a estrutura, lógica, " +
-		"sistema de logs, técnicas utilizadas e a configuração de CI/CD.\n\n")
+	builder.WriteString("Você é um assistente sênior especializado em análise de código-fonte e práticas de desenvolvimento.\n")
+	builder.WriteString("Seu objetivo é analisar com profundidade cada trecho de código apresentado.\n")
+	builder.WriteString("Explique cada função, cada parâmetro, a lógica, a arquitetura e as razões por trás das escolhas feitas.\n")
+	builder.WriteString("Inclua explicações sobre como tudo se conecta, apontando pontos fortes e oportunidades de melhoria.\n\n")
+
+	builder.WriteString("A seguir estão os arquivos de um projeto de desenvolvimento que passará por migração para uma versão mais recente.\n")
+	builder.WriteString("Analise detalhadamente:\n")
+	builder.WriteString("- Estrutura do código e organização de pastas\n")
+	builder.WriteString("- Cada função e seu propósito\n")
+	builder.WriteString("- Módulos/libraries/frameworks utilizados e por quê\n")
+	builder.WriteString("- Sistema de logs (como funciona e se pode ser melhorado)\n")
+	builder.WriteString("- Configuração de CI/CD (arquivos, pipelines, etapas, melhorias possíveis)\n\n")
 
 	ciCdFiles := []string{}
-
 	for file, content := range files {
 		builder.WriteString(fmt.Sprintf("## Arquivo: %s\n", file))
 		builder.WriteString("```yaml\n")
@@ -131,23 +137,29 @@ func buildAnalysisPrompt(files map[string]string, projectName string) string {
 	}
 
 	builder.WriteString("## Relatório de Análise\n")
-	builder.WriteString("Com base nos arquivos acima, gere um documento explicando:\n")
-	builder.WriteString("- O objetivo do projeto\n")
-	builder.WriteString("- Principais funcionalidades e lógica\n")
-	builder.WriteString("- Estrutura do código e organização\n")
-	builder.WriteString("- Técnicas utilizadas (padrões de projeto, frameworks, etc.)\n")
-	builder.WriteString("- Explicação detalhada das funções (auxiliares, de serviço ou handlers)\n")
-	builder.WriteString("- Como o sistema de logs funciona\n\n")
+	builder.WriteString("Crie um relatório completo para um desenvolvedor novo no time, abrangendo:\n")
+	builder.WriteString("1. Objetivo do projeto e seu contexto\n")
+	builder.WriteString("2. Principais funcionalidades e como estão implementadas\n")
+	builder.WriteString("3. Detalhes de cada arquivo relevante (classes, funções, parâmetros, objetos trocados)\n")
+	builder.WriteString("4. Técnicas, padrões de projeto e frameworks utilizados\n")
+	builder.WriteString("5. Sistema de logs (como está configurado, pontos de melhoria)\n")
+	builder.WriteString("6. Possíveis pontos de refatoração para a migração da versão\n\n")
 
 	if len(ciCdFiles) > 0 {
 		builder.WriteString("## Análise de CI/CD\n")
-		builder.WriteString("O projeto contém arquivos de configuração de CI/CD. Avalie como o pipeline está estruturado e identifique:\n")
-		builder.WriteString("- Ferramentas utilizadas (GitHub Actions, CircleCI, etc.)\n")
-		builder.WriteString("- Passos do pipeline (build, test, deploy)\n")
-		builder.WriteString("- Melhorias sugeridas\n\n")
+		builder.WriteString("Explique como o pipeline está estruturado e identifique:\n")
+		builder.WriteString("- Quais ferramentas de CI/CD são usadas\n")
+		builder.WriteString("- As etapas do pipeline (build, testes, deploy)\n")
+		builder.WriteString("- Configurações específicas de ambiente\n")
+		builder.WriteString("- Possíveis melhorias e otimizações\n\n")
 	}
 
-	builder.WriteString("Responda de forma mais detalhada e técnica possível para um desenvolvedor novo no projeto.")
+	builder.WriteString("Estruture a resposta de forma clara e técnica, usando exemplos do código sempre que necessário. ")
+	builder.WriteString("Se algo não estiver claro no código, proponha soluções ou hipóteses prováveis. ")
+	builder.WriteString("Finalize com um resumo das recomendações para a migração.\n")
+
+	prompt := builder.String()
+	fmt.Println(prompt)
 
 	return builder.String()
 }
@@ -165,7 +177,12 @@ func logPrompt(prompt string) error {
 	if err != nil {
 		return fmt.Errorf("erro ao criar arquivo de log: %w", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("erro ao fechar arquivo de log: %v", err)
+		}
+	}(file)
 
 	_, err = file.WriteString(prompt)
 	return err
