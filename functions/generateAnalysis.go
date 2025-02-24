@@ -14,6 +14,7 @@ import (
 )
 
 func GenerateAnalysis() error {
+	projectName := getProjectName()
 	files, err := getProjectFiles(".")
 	if err != nil {
 		return fmt.Errorf("erro ao obter arquivos do projeto: %w", err)
@@ -28,7 +29,8 @@ func GenerateAnalysis() error {
 		return fmt.Errorf("erro ao ler arquivos do projeto: %w", err)
 	}
 
-	prompt := buildAnalysisPrompt(fileContents)
+	prompt := buildAnalysisPrompt(fileContents, projectName)
+	prompt = minifyPrompt(prompt)
 
 	if err := logPrompt(prompt); err != nil {
 		return fmt.Errorf("erro ao gravar log da análise: %w", err)
@@ -53,13 +55,13 @@ func getProjectFiles(root string) ([]string, error) {
 			return err
 		}
 
-		if d.IsDir() && (strings.Contains(path, ".git") || strings.Contains(path, "node_modules") || strings.Contains(path, "vendor")) {
-			if !strings.HasPrefix(path, ".github/workflows") {
-				return filepath.SkipDir
-			}
+		if d.IsDir() && (strings.Contains(path, ".git") ||
+			strings.Contains(path, "node_modules") ||
+			strings.Contains(path, "vendor")) {
+			return filepath.SkipDir
 		}
 
-		if !d.IsDir() && (isCodeFile(path) || isYamlFile(path)) {
+		if !d.IsDir() {
 			files = append(files, path)
 		}
 
@@ -73,6 +75,23 @@ func readProjectFiles(files []string) (map[string]string, error) {
 	fileContents := make(map[string]string)
 
 	for _, file := range files {
+		if strings.HasSuffix(file, ".csproj") {
+			log.Printf("ignorando arquivo .csproj: %s", file)
+			continue
+		}
+
+		if strings.Contains(file, "/bin/") || strings.Contains(file, "/obj/") ||
+			strings.HasPrefix(file, "bin/") || strings.HasPrefix(file, "obj/") {
+			log.Printf("ignorando diretório bin/ ou obj/: %s", file)
+			continue
+		}
+
+		if strings.Contains(file, "/.idea/") || strings.Contains(file, "/.vscode/") ||
+			strings.HasPrefix(file, ".idea/") || strings.HasPrefix(file, ".vscode/") {
+			log.Printf("ignorando diretório .idea/ ou .vscode/: %s", file)
+			continue
+		}
+
 		content, err := os.ReadFile(file)
 		if err != nil {
 			log.Printf("erro ao ler arquivo %s: %v", file, err)
@@ -90,18 +109,19 @@ func readProjectFiles(files []string) (map[string]string, error) {
 	return fileContents, nil
 }
 
-func buildAnalysisPrompt(files map[string]string) string {
+func buildAnalysisPrompt(files map[string]string, projectName string) string {
 	var builder strings.Builder
 
+	builder.WriteString(fmt.Sprintf("# Análise do Projeto: %s\n\n", projectName))
 	builder.WriteString("Você é um assistente especializado em análise de código-fonte.\n")
 	builder.WriteString("Aqui estão os arquivos de um projeto de desenvolvimento. Analise detalhadamente a estrutura, lógica, " +
-		"sistema de logs, técnicas utilizadas e, se presente, a configuração de CI/CD.\n\n")
+		"sistema de logs, técnicas utilizadas e a configuração de CI/CD.\n\n")
 
 	ciCdFiles := []string{}
 
 	for file, content := range files {
-		builder.WriteString(fmt.Sprintf("Arquivo: %s\n", file))
-		builder.WriteString("Código:\n```\n")
+		builder.WriteString(fmt.Sprintf("## Arquivo: %s\n", file))
+		builder.WriteString("```yaml\n")
 		builder.WriteString(content)
 		builder.WriteString("\n```\n\n")
 
@@ -110,6 +130,7 @@ func buildAnalysisPrompt(files map[string]string) string {
 		}
 	}
 
+	builder.WriteString("## Relatório de Análise\n")
 	builder.WriteString("Com base nos arquivos acima, gere um documento explicando:\n")
 	builder.WriteString("- O objetivo do projeto\n")
 	builder.WriteString("- Principais funcionalidades e lógica\n")
@@ -119,7 +140,7 @@ func buildAnalysisPrompt(files map[string]string) string {
 	builder.WriteString("- Como o sistema de logs funciona\n\n")
 
 	if len(ciCdFiles) > 0 {
-		builder.WriteString("### Análise de CI/CD\n")
+		builder.WriteString("## Análise de CI/CD\n")
 		builder.WriteString("O projeto contém arquivos de configuração de CI/CD. Avalie como o pipeline está estruturado e identifique:\n")
 		builder.WriteString("- Ferramentas utilizadas (GitHub Actions, CircleCI, etc.)\n")
 		builder.WriteString("- Passos do pipeline (build, test, deploy)\n")
@@ -144,31 +165,10 @@ func logPrompt(prompt string) error {
 	if err != nil {
 		return fmt.Errorf("erro ao criar arquivo de log: %w", err)
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Printf("erro ao fechar arquivo de log: %v", err)
-		}
-	}(file)
+	defer file.Close()
 
 	_, err = file.WriteString(prompt)
 	return err
-}
-
-func isCodeFile(path string) bool {
-	ext := filepath.Ext(path)
-	codeExtensions := []string{".go", ".js", ".ts", ".py", ".java", ".cpp", ".h", ".cs", ".rb", ".php", ".rs"}
-	for _, e := range codeExtensions {
-		if ext == e {
-			return true
-		}
-	}
-	return false
-}
-
-func isYamlFile(path string) bool {
-	ext := filepath.Ext(path)
-	return ext == ".yaml" || ext == ".yml"
 }
 
 func isBinary(content []byte) bool {
@@ -178,4 +178,21 @@ func isBinary(content []byte) bool {
 		}
 	}
 	return false
+}
+
+func getProjectName() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Printf("Erro ao obter diretório atual: %v", err)
+		return "Projeto Desconhecido"
+	}
+
+	return filepath.Base(wd)
+}
+
+func minifyPrompt(prompt string) string {
+	prompt = strings.ReplaceAll(prompt, "\n\n", "\n") // Remove linhas vazias extras
+	prompt = strings.ReplaceAll(prompt, "\t", " ")    // Substitui tabulações por espaços únicos
+	prompt = strings.TrimSpace(prompt)                // Remove espaços extras do começo e fim
+	return prompt
 }
