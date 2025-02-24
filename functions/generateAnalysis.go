@@ -159,7 +159,10 @@ func buildAnalysisPrompt(files map[string]string, projectName string) string {
 	builder.WriteString("Finalize com um resumo das recomendações para a migração.\n")
 
 	prompt := builder.String()
-	fmt.Println(prompt)
+	err := logPrompt(prompt)
+	if err != nil {
+		fmt.Printf("Erro ao gravar log da análise: %v\n", err)
+	}
 
 	return builder.String()
 }
