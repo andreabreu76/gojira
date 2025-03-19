@@ -3,15 +3,21 @@ package functions
 import (
 	"errors"
 	"fmt"
-	"gojira/services"
+	"gojira/services/ai"
 	"gojira/utils/commons"
 	"io/fs"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// Define o limite aproximado de caracteres para cada chunk.
+// Ajuste conforme achar necessário para não exceder 16k tokens.
+// De forma bem grosseira, 1 token ~ 4 caracteres, mas deixe margem.
+const chunkSize = 10000
 
 func GenerateAnalysis() error {
 	projectName := getProjectName()
@@ -36,13 +42,24 @@ func GenerateAnalysis() error {
 		return fmt.Errorf("erro ao gravar log da análise: %w", err)
 	}
 
-	response, err := services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
+	// Carrega configuração
+	config, err := commons.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("erro ao carregar configuração: %w", err)
+	}
+
+	// Obtém o provedor de IA configurado
+	provider, exists := ai.GetProvider(config.AIProvider)
+	if !exists {
+		provider = ai.GetDefaultProvider()
+	}
+
+	response, err := provider.GetCompletions(prompt, config.AIModel)
 	if err != nil {
 		return fmt.Errorf("erro ao obter resposta da OpenAI: %w", err)
 	}
 
 	fmt.Println(response)
-
 	return nil
 }
 
@@ -63,10 +80,8 @@ func getProjectFiles(root string) ([]string, error) {
 		if !d.IsDir() {
 			files = append(files, path)
 		}
-
 		return nil
 	})
-
 	return files, err
 }
 
@@ -78,13 +93,11 @@ func readProjectFiles(files []string) (map[string]string, error) {
 			log.Printf("ignorando arquivo .csproj: %s", file)
 			continue
 		}
-
 		if strings.Contains(file, "/bin/") || strings.Contains(file, "/obj/") ||
 			strings.HasPrefix(file, "bin/") || strings.HasPrefix(file, "obj/") {
 			log.Printf("ignorando diretório bin/ ou obj/: %s", file)
 			continue
 		}
-
 		if strings.Contains(file, "/.idea/") || strings.Contains(file, "/.vscode/") ||
 			strings.HasPrefix(file, ".idea/") || strings.HasPrefix(file, ".vscode/") {
 			log.Printf("ignorando diretório .idea/ ou .vscode/: %s", file)
@@ -124,18 +137,22 @@ func buildAnalysisPrompt(files map[string]string, projectName string) string {
 	builder.WriteString("- Sistema de logs (como funciona e se pode ser melhorado)\n")
 	builder.WriteString("- Configuração de CI/CD (arquivos, pipelines, etapas, melhorias possíveis)\n\n")
 
-	ciCdFiles := []string{}
-	for file, content := range files {
-		builder.WriteString(fmt.Sprintf("## Arquivo: %s\n", file))
-		builder.WriteString("```yaml\n")
-		builder.WriteString(content)
-		builder.WriteString("\n```\n\n")
+	var ciCdFiles []string
 
-		if strings.HasPrefix(file, ".github/workflows/") {
-			ciCdFiles = append(ciCdFiles, file)
+	for fileName, content := range files {
+		chunks := chunkString(content, chunkSize)
+		for i, chunk := range chunks {
+			builder.WriteString(fmt.Sprintf("## Arquivo: %s (parte %d)\n", fileName, i+1))
+			builder.WriteString("```yaml\n")
+			builder.WriteString(chunk)
+			builder.WriteString("\n```\n\n")
+		}
+		if strings.HasPrefix(fileName, ".github/workflows/") {
+			ciCdFiles = append(ciCdFiles, fileName)
 		}
 	}
 
+	// Solicita relatório final unificando tudo
 	builder.WriteString("## Relatório de Análise\n")
 	builder.WriteString("Crie um relatório completo para um desenvolvedor novo no time, abrangendo:\n")
 	builder.WriteString("1. Objetivo do projeto e seu contexto\n")
@@ -164,7 +181,7 @@ func buildAnalysisPrompt(files map[string]string, projectName string) string {
 		fmt.Printf("Erro ao gravar log da análise: %v\n", err)
 	}
 
-	return builder.String()
+	return prompt
 }
 
 func logPrompt(prompt string) error {
@@ -172,7 +189,6 @@ func logPrompt(prompt string) error {
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return fmt.Errorf("erro ao criar diretório de logs: %w", err)
 	}
-
 	timestamp := time.Now().Format("20060102-150405")
 	logFile := filepath.Join(logDir, fmt.Sprintf("%s-gojira-analysis.log", timestamp))
 
@@ -181,14 +197,40 @@ func logPrompt(prompt string) error {
 		return fmt.Errorf("erro ao criar arquivo de log: %w", err)
 	}
 	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Printf("erro ao fechar arquivo de log: %v", err)
+		if ferr := file.Close(); ferr != nil {
+			log.Printf("erro ao fechar arquivo de log: %v", ferr)
 		}
 	}(file)
 
 	_, err = file.WriteString(prompt)
 	return err
+}
+
+func minifyPrompt(prompt string) string {
+	prompt = strings.ReplaceAll(prompt, "\n\n", "\n")
+	prompt = strings.ReplaceAll(prompt, "\t", " ")
+	prompt = strings.TrimSpace(prompt)
+	return prompt
+}
+
+func chunkString(s string, size int) []string {
+	var chunks []string
+	length := len(s)
+	if length == 0 {
+		return []string{s}
+	}
+
+	numChunks := int(math.Ceil(float64(length) / float64(size)))
+	start := 0
+	for i := 0; i < numChunks; i++ {
+		end := start + size
+		if end > length {
+			end = length
+		}
+		chunks = append(chunks, s[start:end])
+		start = end
+	}
+	return chunks
 }
 
 func isBinary(content []byte) bool {
@@ -206,13 +248,5 @@ func getProjectName() string {
 		log.Printf("Erro ao obter diretório atual: %v", err)
 		return "Projeto Desconhecido"
 	}
-
 	return filepath.Base(wd)
-}
-
-func minifyPrompt(prompt string) string {
-	prompt = strings.ReplaceAll(prompt, "\n\n", "\n") // Remove linhas vazias extras
-	prompt = strings.ReplaceAll(prompt, "\t", " ")    // Substitui tabulações por espaços únicos
-	prompt = strings.TrimSpace(prompt)                // Remove espaços extras do começo e fim
-	return prompt
 }

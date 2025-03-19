@@ -2,7 +2,7 @@ package functions
 
 import (
 	"fmt"
-	"gojira/services"
+	"gojira/services/ai"
 	"gojira/utils/commons"
 	"gojira/utils/git"
 )
@@ -51,5 +51,17 @@ func GenerateCommitMessage(diffs map[string]string, branch string) (string, erro
 		prompt += fmt.Sprintf("\n\nBranch: %s\nFile: %s\nChanges:\n%s\n", branch, file, diff)
 	}
 
-	return services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
+	// Carrega configuração
+	config, err := commons.LoadConfig()
+	if err != nil {
+		return "", fmt.Errorf("erro ao carregar configuração: %w", err)
+	}
+
+	// Obtém o provedor de IA configurado
+	provider, exists := ai.GetProvider(config.AIProvider)
+	if !exists {
+		provider = ai.GetDefaultProvider()
+	}
+
+	return provider.GetCompletions(prompt, config.AIModel)
 }
