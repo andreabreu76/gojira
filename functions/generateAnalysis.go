@@ -3,7 +3,7 @@ package functions
 import (
 	"errors"
 	"fmt"
-	"gojira/services"
+	"gojira/services/ai"
 	"gojira/utils/commons"
 	"io/fs"
 	"log"
@@ -42,7 +42,19 @@ func GenerateAnalysis() error {
 		return fmt.Errorf("erro ao gravar log da análise: %w", err)
 	}
 
-	response, err := services.CallOpenAiCompletions(prompt, commons.GetEnv("OPENAI_API_KEY"))
+	// Carrega configuração
+	config, err := commons.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("erro ao carregar configuração: %w", err)
+	}
+
+	// Obtém o provedor de IA configurado
+	provider, exists := ai.GetProvider(config.AIProvider)
+	if !exists {
+		provider = ai.GetDefaultProvider()
+	}
+
+	response, err := provider.GetCompletions(prompt, config.AIModel)
 	if err != nil {
 		return fmt.Errorf("erro ao obter resposta da OpenAI: %w", err)
 	}
