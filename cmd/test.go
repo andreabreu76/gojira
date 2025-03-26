@@ -38,7 +38,7 @@ var testCmd = &cobra.Command{
 			dir, fileName := filepath.Split(sourceFile)
 			ext := filepath.Ext(fileName)
 			baseName := fileName[:len(fileName)-len(ext)]
-			
+
 			// Cria nome do arquivo de teste baseado na convenção da linguagem
 			switch ext {
 			case ".go":
@@ -212,8 +212,6 @@ func extractCodeFromMarkdown(markdown, language string) string {
 	lines := strings.Split(markdown, "\n")
 	inCodeBlock := false
 	currentBlock := []string{}
-	languageTag := strings.ToLower(language)
-
 	for _, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 

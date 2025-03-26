@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"gojira/services"
 	"gojira/services/ai"
 	"gojira/utils/commons"
 	"os"
@@ -44,7 +45,7 @@ var branchCmd = &cobra.Command{
 			branchPrefix = "feature"
 		}
 
-		// Se a issue não foi fornecida e o nome não contém uma issue, 
+		// Se a issue não foi fornecida e o nome não contém uma issue,
 		// solicita a issue do usuário
 		if issueKey == "" && !strings.Contains(branchName, "-") {
 			fmt.Println("Digite a chave da issue (ex: ABC-123):")
@@ -66,10 +67,10 @@ var branchCmd = &cobra.Command{
 		}
 
 		// Cria a branch
-		cmd := exec.Command("git", "checkout", "-b", formattedName)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		gitCmd := exec.Command("git", "checkout", "-b", formattedName)
+		gitCmd.Stdout = os.Stdout
+		gitCmd.Stderr = os.Stderr
+		if err := gitCmd.Run(); err != nil {
 			return fmt.Errorf("erro ao criar a branch: %w", err)
 		}
 
@@ -104,7 +105,7 @@ var startCmd = &cobra.Command{
 			}
 		} else {
 			fmt.Printf("Tarefa: %s - %s\n", issue.Key, issue.Summary)
-			
+
 			// Cria um nome de branch a partir do título da tarefa
 			suggestedBranchName := strings.ToLower(issue.Summary)
 			suggestedBranchName = strings.ReplaceAll(suggestedBranchName, " ", "-")
@@ -115,12 +116,12 @@ var startCmd = &cobra.Command{
 				}
 				return -1
 			}, suggestedBranchName)
-			
+
 			// Limita o tamanho do nome da branch
 			if len(suggestedBranchName) > 50 {
 				suggestedBranchName = suggestedBranchName[:50]
 			}
-			
+
 			// Define o tipo de branch com base no tipo de issue
 			switch issue.Type {
 			case services.JiraEpic:
@@ -130,7 +131,7 @@ var startCmd = &cobra.Command{
 			default:
 				branchPrefix = "feature"
 			}
-			
+
 			// Confirma o nome da branch
 			fmt.Printf("Nome sugerido para a branch: %s/%s-%s\n", branchPrefix, issue.Key, suggestedBranchName)
 			fmt.Println("Deseja usar este nome? (s/n)")
@@ -164,9 +165,9 @@ var checklistCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("erro ao obter o nome da branch atual: %w", err)
 		}
-		
+
 		branch := strings.TrimSpace(string(output))
-		
+
 		// Extrai a issue da branch
 		issuePattern := "[A-Z]+-[0-9]+"
 		matches, err := filepath.Match(issuePattern, branch)
@@ -180,7 +181,7 @@ var checklistCmd = &cobra.Command{
 				}
 			}
 		}
-		
+
 		// Se ainda não temos a issue, pergunta ao usuário
 		if issueKey == "" {
 			fmt.Println("Digite a chave da issue (ex: ABC-123):")
@@ -189,13 +190,13 @@ var checklistCmd = &cobra.Command{
 				return fmt.Errorf("erro ao ler a chave da issue: %w", err)
 			}
 		}
-		
+
 		// Busca os detalhes da issue no Jira
 		issue, err := services.GetJiraIssue(issueKey)
 		if err != nil {
 			return fmt.Errorf("não foi possível obter detalhes da issue %s: %w", issueKey, err)
 		}
-		
+
 		// Constrói o prompt para gerar o checklist
 		prompt := fmt.Sprintf(
 			"Crie um checklist detalhado para a issue '%s' com título '%s'.\n\n"+
@@ -211,57 +212,57 @@ var checklistCmd = &cobra.Command{
 				"- [ ] Tarefa 2\n   - [ ] Subtarefa 2.1\n",
 			issue.Key, issue.Summary, issue.Description,
 		)
-		
+
 		// Carrega configuração
 		config, err := commons.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("erro ao carregar configuração: %w", err)
 		}
-		
+
 		// Obtém o provedor de IA configurado
 		provider, exists := ai.GetProvider(config.AIProvider)
 		if !exists {
 			provider = ai.GetDefaultProvider()
 		}
-		
+
 		// Gera o checklist
 		checklist, err := provider.GetCompletions(prompt, config.AIModel)
 		if err != nil {
 			return fmt.Errorf("erro ao gerar checklist: %w", err)
 		}
-		
+
 		// Salva o checklist em um arquivo
 		filename := fmt.Sprintf("checklist-%s.md", issueKey)
 		err = os.WriteFile(filename, []byte(checklist), 0644)
 		if err != nil {
 			return fmt.Errorf("erro ao salvar checklist: %w", err)
 		}
-		
+
 		fmt.Printf("Checklist gerado e salvo em %s\n", filename)
 		fmt.Println("\nChecklist:")
 		fmt.Println(checklist)
-		
+
 		return nil
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(devCmd)
-	
+
 	// Adiciona os subcomandos
 	devCmd.AddCommand(branchCmd)
 	devCmd.AddCommand(startCmd)
 	devCmd.AddCommand(checklistCmd)
-	
+
 	// Flags para o comando branch
 	branchCmd.Flags().StringVarP(&branchName, "name", "n", "", "Nome da branch")
 	branchCmd.Flags().StringVarP(&branchPrefix, "prefix", "p", "", "Prefixo da branch (feature, fix, chore)")
 	branchCmd.Flags().StringVarP(&issueKey, "issue", "i", "", "Chave da issue (ex: ABC-123)")
-	
+
 	// Flags para o comando start
 	startCmd.Flags().StringVarP(&issueKey, "issue", "i", "", "Chave da issue (ex: ABC-123)")
 	startCmd.Flags().BoolVarP(&skipChecklist, "no-checklist", "c", false, "Não gerar checklist")
-	
+
 	// Flags para o comando checklist
 	checklistCmd.Flags().StringVarP(&issueKey, "issue", "i", "", "Chave da issue (ex: ABC-123)")
 }
