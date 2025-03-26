@@ -1,27 +1,40 @@
-# 🦖 Gojira 
+# Gojira 🦖
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/gojira)](https://goreportcard.com/report/github.com/yourusername/gojira)
+[![GitHub release](https://img.shields.io/github/release/yourusername/gojira.svg)](https://github.com/yourusername/gojira/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/yourusername/gojira)](https://github.com/yourusername/gojira)
+[![Contributors](https://img.shields.io/github/contributors/yourusername/gojira)](https://github.com/yourusername/gojira/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/gojira/pulls)
+[![Stars](https://img.shields.io/github/stars/yourusername/gojira)](https://github.com/yourusername/gojira/stargazers)
+[![Forks](https://img.shields.io/github/forks/yourusername/gojira)](https://github.com/yourusername/gojira/network/members)
+[![Issues](https://img.shields.io/github/issues/yourusername/gojira)](https://github.com/yourusername/gojira/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/yourusername/gojira)](https://github.com/yourusername/gojira/commits/main)
 
 <div align="center">
+  <p>
+    <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/gojira-logo.png" alt="Gojira Logo" width="250">
+  </p>
   <h3>Ferramenta CLI com IA para Potencializar seu Desenvolvimento</h3>
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Made%20with-Go-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>
-    <a href="https://github.com/andreabreu76/gojira/issues"><img src="https://img.shields.io/github/issues/andreabreu76/gojira?style=flat-square" alt="Issues"></a>
-    <a href="https://github.com/andreabreu76/gojira/stargazers"><img src="https://img.shields.io/github/stars/andreabreu76/gojira?style=flat-square" alt="Stars"></a>
-    <a href="https://github.com/andreabreu76/gojira/network/members"><img src="https://img.shields.io/github/forks/andreabreu76/gojira?style=flat-square" alt="Forks"></a>
-
-[//]: # (    <a href="https://discord.gg/gojira"><img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>)
+    <a href="https://github.com/yourusername/gojira/issues"><img src="https://img.shields.io/github/issues/yourusername/gojira?style=flat-square" alt="Issues"></a>
+    <a href="https://github.com/yourusername/gojira/stargazers"><img src="https://img.shields.io/github/stars/yourusername/gojira?style=flat-square" alt="Stars"></a>
+    <a href="https://github.com/yourusername/gojira/network/members"><img src="https://img.shields.io/github/forks/yourusername/gojira?style=flat-square" alt="Forks"></a>
+    <a href="https://discord.gg/gojira"><img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
   </p>
 </div>
 
-## Descrição
+## 📖 Descrição
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/demo.gif" alt="Gojira Demo" width="700">
+  <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/demo.gif" alt="Gojira Demo" width="700">
 </div>
 
 <br>
 Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de desenvolvimento de software, integrando recursos de inteligência artificial para automação de tarefas comuns. O Gojira permite gerar mensagens de commit, analisar código, criar documentação, interagir com o Jira e facilitar o gerenciamento de tarefas de desenvolvimento.
 
-## Funcionalidades Principais
+## ✨ Funcionalidades Principais
 - **Múltiplos Provedores de IA**: Suporte para OpenAI (GPT-4) e Anthropic (Claude), facilmente extensível para outros provedores
 - **Integração com Jira**: Geração de descrições para tarefas do Jira e criação automática de issues
 - **Geração de Documentação**: README, análise de código e checklists
@@ -34,17 +47,17 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 - **Resumo de Alterações**: Cria resumos das mudanças no código
 - **Standups Automáticos**: Gera relatórios para daily standups
 
-## Tecnologias Utilizadas
+## 🛠️ Tecnologias Utilizadas
 - **Go**: Linguagem de programação principal
 - **APIs de IA**: OpenAI API e Anthropic API para geração de conteúdo
 - **Jira API**: Para integração com o Atlassian Jira
 - **Git**: Para integração com repositórios Git
 
-## Instalação
+## 🔧 Instalação
 
 1. **Clone o Repositório**:
    ```bash
-   git clone https://github.com/andreabreu76/gojira.git
+   git clone https://github.com/yourusername/gojira.git
    cd gojira
    ```
 
@@ -63,9 +76,9 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
    ./gojira config --provider openai --jira-url https://your-jira-instance.atlassian.net --jira-token your-jira-token
    ```
 
-## Uso
+## 📋 Uso
 
-### Configuração
+### ⚙️ Configuração
 ```bash
 # Mostrar configuração atual
 ./gojira config show
@@ -80,7 +93,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira config --jira-url https://your-jira-instance.atlassian.net --jira-token your-jira-token --jira-project PROJ
 ```
 
-### Geração de Documentação
+### 📝 Geração de Documentação
 ```bash
 # Gerar README.md para o projeto
 ./gojira generate readme
@@ -89,7 +102,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira generate analysis
 ```
 
-### Integração com Git
+### 🌱 Integração com Git
 ```bash
 # Gerar mensagem de commit baseada nas alterações atuais
 ./gojira commit
@@ -107,7 +120,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira summary --base HEAD~10 --save --output resumo-alteracoes.md
 ```
 
-### Integração com Jira
+### 🔄 Integração com Jira
 ```bash
 # Gerar descrição para uma tarefa do Jira
 ./gojira jira --title "Implementar autenticação OAuth" --type TASK
@@ -125,7 +138,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira kanban --project PROJ --format plain
 ```
 
-### Workflow de Desenvolvimento
+### 🔄 Workflow de Desenvolvimento
 ```bash
 # Iniciar trabalho em uma issue
 ./gojira dev start --issue PROJ-123
@@ -146,7 +159,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira standup --output standup.md
 ```
 
-### Entendimento e Geração de Código
+### 💻 Entendimento e Geração de Código
 ```bash
 # Explicar um arquivo de código
 ./gojira explain --file /caminho/para/arquivo.go
@@ -167,9 +180,9 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 ./gojira test-gen --source /caminho/para/arquivo.js --framework jest
 ```
 
-## Comandos Detalhados
+## 📚 Comandos Detalhados
 
-### PR - Pull Request
+### 🔀 PR - Pull Request
 Cria um Pull Request (PR) utilizando a configuração do Git e integração com plataformas como GitHub ou GitLab. Gera automaticamente título e descrição detalhada com IA se não forem fornecidos.
 
 ```bash
@@ -184,7 +197,7 @@ Flags:
   -t, --title string     Título do PR
 ```
 
-### Explain - Explicação de Código
+### 🔍 Explain - Explicação de Código
 Analisa e explica o funcionamento de trechos de código, classes, funções ou arquivos inteiros, tornando mais fácil entender código complexo ou legado.
 
 ```bash
@@ -198,7 +211,7 @@ Flags:
   -l, --level string     Nível de experiência do desenvolvedor (beginner, intermediate, expert) (default "intermediate")
 ```
 
-### Test-Gen - Geração de Testes
+### 🧪 Test-Gen - Geração de Testes
 Analisa o código-fonte e gera testes automaticamente utilizando inteligência artificial, cobrindo funções, classes e métodos.
 
 ```bash
@@ -211,7 +224,7 @@ Flags:
   -c, --coverage string   Nível de cobertura desejado (básica, média, alta) (default "alta")
 ```
 
-### Kanban - Visualização de Tarefas
+### 📊 Kanban - Visualização de Tarefas
 Exibe as tarefas do Jira em um formato de quadro kanban diretamente no terminal, permitindo visualizar o progresso das tarefas sem sair da linha de comando.
 
 ```bash
@@ -225,7 +238,7 @@ Flags:
   -f, --format string     Formato de saída (color, plain) (default "color")
 ```
 
-### Summary - Resumo de Alterações
+### 📈 Summary - Resumo de Alterações
 Analisa as alterações no código desde um commit ou branch específica e gera um resumo detalhado do que foi alterado, adicionado ou removido.
 
 ```bash
@@ -240,7 +253,7 @@ Flags:
   -c, --code              Incluir código detalhado no prompt (aumenta precisão, mas consome mais tokens)
 ```
 
-### Standup - Relatórios Diários
+### 📢 Standup - Relatórios Diários
 Analisa as atividades recentes (commits, issues, etc.) e gera um relatório formatado para reuniões de standup diárias, detalhando o que foi feito, o que está planejado e quaisquer bloqueios.
 
 ```bash
@@ -254,7 +267,7 @@ Flags:
   -o, --output string     Arquivo para salvar o relatório (opcional)
 ```
 
-## Configuração de Ambiente
+## ⚙️ Configuração de Ambiente
 
 O Gojira necessita das seguintes variáveis de ambiente ou arquivos de configuração:
 
@@ -267,7 +280,7 @@ O Gojira necessita das seguintes variáveis de ambiente ou arquivos de configura
    - Modelo de IA preferido
    - Configurações do Jira
 
-### Como obter as chaves de API
+### 🔑 Como obter as chaves de API
 
 #### OpenAI API Key
 1. Crie uma conta ou faça login em [OpenAI Platform](https://platform.openai.com/)
@@ -281,7 +294,7 @@ O Gojira necessita das seguintes variáveis de ambiente ou arquivos de configura
 3. Clique em "Create Key"
 4. Copie a chave gerada e salve-a em seu arquivo `.env` como `ANTHROPIC_API_KEY=sua-chave-aqui`
 
-## Como Contribuir
+## 👥 Como Contribuir
 
 1. Fork o repositório
 2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
@@ -289,33 +302,33 @@ O Gojira necessita das seguintes variáveis de ambiente ou arquivos de configura
 4. Push para a branch (`git push origin feature/nova-funcionalidade`)
 5. Abra um Pull Request
 
-## Licença
+## 📄 Licença
 Este projeto está licenciado sob a licença MIT.
 
-## Showcase
+## ⭐ Showcase
 
 <div align="center">
   <table>
     <tr>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/terminal-kanban.png" width="400px" alt="Terminal Kanban View"/>
+        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/terminal-kanban.png" width="400px" alt="Terminal Kanban View"/>
         <br />
         <i>Visualização Kanban no Terminal</i>
       </td>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/code-explanation.png" width="400px" alt="Code Explanation"/>
+        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/code-explanation.png" width="400px" alt="Code Explanation"/>
         <br />
         <i>Explicação de Código Detalhada</i>
       </td>
     </tr>
     <tr>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/test-generation.png" width="400px" alt="Test Generation"/>
+        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/test-generation.png" width="400px" alt="Test Generation"/>
         <br />
         <i>Geração Automática de Testes</i>
       </td>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/standup-report.png" width="400px" alt="Standup Report"/>
+        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/standup-report.png" width="400px" alt="Standup Report"/>
         <br />
         <i>Relatório de Standup Diário</i>
       </td>
@@ -323,7 +336,7 @@ Este projeto está licenciado sob a licença MIT.
   </table>
 </div>
 
-## Agradecimentos
+## 🙏 Agradecimentos
 - Todos os contribuidores que ajudaram a tornar o Gojira melhor
 - [OpenAI](https://openai.com/) e [Anthropic](https://www.anthropic.com/) pelos poderosos modelos de IA
 - A comunidade open source por todas as ferramentas e bibliotecas utilizadas
@@ -331,7 +344,7 @@ Este projeto está licenciado sob a licença MIT.
 ---
 
 <div align="center">
-  <sub>Construído por todos os colaboradores</sub>
+  <sub>Construído com ❤️ por todos os colaboradores</sub>
   <br>
   <sub>© 2023-2025</sub>
 </div>

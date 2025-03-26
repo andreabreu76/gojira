@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"gojira/services"
 	"gojira/utils/commons"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -12,10 +13,11 @@ import (
 
 var (
 	// Flags para o comando kanban
-	userFilter   string
-	statusFilter string
-	limitIssues  int
-	outputFormat string
+	projectKey    string
+	userFilter    string
+	statusFilter  string
+	limitIssues   int
+	outputFormat  string
 )
 
 // kanbanCmd representa o comando para visualizar tarefas do Jira em formato kanban
@@ -52,7 +54,7 @@ var kanbanCmd = &cobra.Command{
 
 		// Organiza as tarefas por status
 		issuesByStatus := organizeIssuesByStatus(issues)
-
+		
 		// Exibe as tarefas
 		if outputFormat == "plain" {
 			displayPlainKanban(issuesByStatus)
@@ -68,7 +70,7 @@ var kanbanCmd = &cobra.Command{
 func fetchJiraIssues(project, user, status string, limit int) ([]*services.JiraIssue, error) {
 	// Este é um stub - em uma implementação real, faria uma chamada à API do Jira
 	// com os filtros apropriados. Como simplificação, vamos retornar alguns dados mockados.
-
+	
 	// Mock de tarefas
 	mockIssues := []*services.JiraIssue{
 		{Key: "PROJ-123", Summary: "Implementar autenticação OAuth", Type: services.JiraTask, ProjectKey: project},
@@ -77,14 +79,14 @@ func fetchJiraIssues(project, user, status string, limit int) ([]*services.JiraI
 		{Key: "PROJ-126", Summary: "Adicionar documentação", Type: services.JiraTask, ProjectKey: project},
 		{Key: "PROJ-127", Summary: "Refatorar módulo de pagamentos", Type: services.JiraTask, ProjectKey: project},
 	}
-
+	
 	// Para uma implementação real, este método faria:
 	// 1. Construir uma query JQL apropriada
 	// 2. Chamar a API do Jira usando a configuração do usuário
 	// 3. Parsear a resposta em objetos JiraIssue
 	// 4. Aplicar os filtros de usuário e status
 	// 5. Limitar o número de resultados
-
+	
 	return mockIssues, nil
 }
 
@@ -94,18 +96,18 @@ func organizeIssuesByStatus(issues []*services.JiraIssue) map[string][]*services
 	// Como simplificação, vamos atribuir status aleatórios
 	statuses := []string{"To Do", "In Progress", "Review", "Done"}
 	result := make(map[string][]*services.JiraIssue)
-
+	
 	// Inicializa o mapa com todas as colunas
 	for _, status := range statuses {
 		result[status] = []*services.JiraIssue{}
 	}
-
+	
 	// Distribui as tarefas pelas colunas
 	for i, issue := range issues {
 		status := statuses[i%len(statuses)]
 		result[status] = append(result[status], issue)
 	}
-
+	
 	return result
 }
 
@@ -118,7 +120,7 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 	green := "\033[32m"
 	yellow := "\033[33m"
 	red := "\033[31m"
-
+	
 	// Determina a largura de cada coluna
 	width := 25 // Largura default
 	if len(issuesByStatus) > 0 {
@@ -130,7 +132,7 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 			width = 40
 		}
 	}
-
+	
 	// Cabeçalhos
 	for status := range issuesByStatus {
 		statusColor := blue
@@ -147,13 +149,13 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 		fmt.Printf("%s%s%s%s%s", bold, statusColor, centerText(status, width), reset, strings.Repeat(" ", 4))
 	}
 	fmt.Println()
-
+	
 	// Separador
 	for range issuesByStatus {
 		fmt.Printf("%s%s", strings.Repeat("-", width), strings.Repeat(" ", 4))
 	}
 	fmt.Println()
-
+	
 	// Encontra o número máximo de tarefas em uma coluna
 	maxIssues := 0
 	for _, issues := range issuesByStatus {
@@ -161,10 +163,10 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 			maxIssues = len(issues)
 		}
 	}
-
+	
 	// Imprime as tarefas
 	for i := 0; i < maxIssues; i++ {
-		for _, issues := range issuesByStatus {
+		for status, issues := range issuesByStatus {
 			if i < len(issues) {
 				issue := issues[i]
 				issueColor := ""
@@ -176,15 +178,15 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 				case services.JiraEpic:
 					issueColor = green
 				}
-
+				
 				// Trunca o título se for muito longo
 				summary := issue.Summary
 				if len(summary) > width-10 {
 					summary = summary[:width-13] + "..."
 				}
-
+				
 				// Exibe a tarefa
-				fmt.Printf("%s%s %-"+fmt.Sprintf("%d", width-7)+"s%s%s",
+				fmt.Printf("%s%s %-"+fmt.Sprintf("%d", width-7)+"s%s%s", 
 					issueColor, issue.Key, summary, reset, strings.Repeat(" ", 4))
 			} else {
 				fmt.Printf("%s%s", strings.Repeat(" ", width), strings.Repeat(" ", 4))
@@ -198,12 +200,12 @@ func displayKanban(issuesByStatus map[string][]*services.JiraIssue) {
 func displayPlainKanban(issuesByStatus map[string][]*services.JiraIssue) {
 	for status, issues := range issuesByStatus {
 		fmt.Printf("\n=== %s ===\n\n", status)
-
+		
 		if len(issues) == 0 {
 			fmt.Println("Nenhuma tarefa")
 			continue
 		}
-
+		
 		for _, issue := range issues {
 			fmt.Printf("%s: %s (%s)\n", issue.Key, issue.Summary, string(issue.Type))
 		}
@@ -215,11 +217,11 @@ func centerText(text string, width int) string {
 	if len(text) >= width {
 		return text[:width]
 	}
-
+	
 	spaces := width - len(text)
 	leftPad := spaces / 2
 	rightPad := spaces - leftPad
-
+	
 	return strings.Repeat(" ", leftPad) + text + strings.Repeat(" ", rightPad)
 }
 
@@ -227,26 +229,26 @@ func centerText(text string, width int) string {
 func getTerminalWidth() int {
 	// Valor padrão caso não consiga determinar
 	defaultWidth := 80
-
-	// Esta é uma implementação simples - em um caso real, usaríamos
+	
+	// Esta é uma implementação simples - em um caso real, usaríamos 
 	// alguma biblioteca para determinar a largura do terminal
 	cmd := "tput cols"
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		return defaultWidth
 	}
-
+	
 	width, err := strconv.Atoi(strings.TrimSpace(string(out)))
 	if err != nil {
 		return defaultWidth
 	}
-
+	
 	return width
 }
 
 func init() {
 	RootCmd.AddCommand(kanbanCmd)
-
+	
 	// Flags para o comando kanban
 	kanbanCmd.Flags().StringVarP(&projectKey, "project", "p", "", "Chave do projeto Jira")
 	kanbanCmd.Flags().StringVarP(&userFilter, "user", "u", "", "Filtrar por usuário")
