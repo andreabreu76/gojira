@@ -13,14 +13,14 @@
 
 <div align="center">
   <p>
-    <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/gojira-logo.png" alt="Gojira Logo" width="250">
+    <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/gojira-logo.png" alt="Gojira Logo" width="250">
   </p>
   <h3>Ferramenta CLI com IA para Potencializar seu Desenvolvimento</h3>
   <p>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Made%20with-Go-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>
-    <a href="https://github.com/yourusername/gojira/issues"><img src="https://img.shields.io/github/issues/yourusername/gojira?style=flat-square" alt="Issues"></a>
-    <a href="https://github.com/yourusername/gojira/stargazers"><img src="https://img.shields.io/github/stars/yourusername/gojira?style=flat-square" alt="Stars"></a>
-    <a href="https://github.com/yourusername/gojira/network/members"><img src="https://img.shields.io/github/forks/yourusername/gojira?style=flat-square" alt="Forks"></a>
+    <a href="https://github.com/andreabreu76/gojira/issues"><img src="https://img.shields.io/github/issues/andreabreu76/gojira?style=flat-square" alt="Issues"></a>
+    <a href="https://github.com/andreabreu76/gojira/stargazers"><img src="https://img.shields.io/github/stars/andreabreu76/gojira?style=flat-square" alt="Stars"></a>
+    <a href="https://github.com/andreabreu76/gojira/network/members"><img src="https://img.shields.io/github/forks/andreabreu76/gojira?style=flat-square" alt="Forks"></a>
     <a href="https://discord.gg/gojira"><img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
   </p>
 </div>
@@ -28,7 +28,7 @@
 ## 📖 Descrição
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/demo.gif" alt="Gojira Demo" width="700">
+  <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/demo.gif" alt="Gojira Demo" width="700">
 </div>
 
 <br>
@@ -57,7 +57,7 @@ Gojira é uma ferramenta CLI poderosa projetada para agilizar o processo de dese
 
 1. **Clone o Repositório**:
    ```bash
-   git clone https://github.com/yourusername/gojira.git
+   git clone https://github.com/andreabreu76/gojira.git
    cd gojira
    ```
 
@@ -311,24 +311,24 @@ Este projeto está licenciado sob a licença MIT.
   <table>
     <tr>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/terminal-kanban.png" width="400px" alt="Terminal Kanban View"/>
+        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/terminal-kanban.png" width="400px" alt="Terminal Kanban View"/>
         <br />
         <i>Visualização Kanban no Terminal</i>
       </td>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/code-explanation.png" width="400px" alt="Code Explanation"/>
+        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/code-explanation.png" width="400px" alt="Code Explanation"/>
         <br />
         <i>Explicação de Código Detalhada</i>
       </td>
     </tr>
     <tr>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/test-generation.png" width="400px" alt="Test Generation"/>
+        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/test-generation.png" width="400px" alt="Test Generation"/>
         <br />
         <i>Geração Automática de Testes</i>
       </td>
       <td align="center">
-        <img src="https://raw.githubusercontent.com/yourusername/gojira/main/assets/standup-report.png" width="400px" alt="Standup Report"/>
+        <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/standup-report.png" width="400px" alt="Standup Report"/>
         <br />
         <i>Relatório de Standup Diário</i>
       </td>
