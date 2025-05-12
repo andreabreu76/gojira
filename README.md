@@ -13,7 +13,7 @@
 
 <div align="center">
   <p>
-    <img src="https://raw.githubusercontent.com/andreabreu76/gojira/main/assets/gojira-logo.png" alt="Gojira Logo" width="250">
+    <img src="assets/gojira_logo.png" alt="Gojira Logo" width="248">
   </p>
   <h3>Ferramenta CLI com IA para Potencializar seu Desenvolvimento</h3>
   <p>
